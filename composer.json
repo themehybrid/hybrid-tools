@@ -1,0 +1,27 @@
+{
+	"name"        : "justintadlock/hybrid-core",
+	"description" : "Add-on tools for the Hybrid Core framework.",
+	"keywords"    : [ "wordpress" ],
+	"homepage"    : "https://themehybrid.com/hybrid-core",
+	"license"     : "GPL-2.0-or-later",
+	"authors"     : [
+		{
+			"name"     : "Justin Tadlock",
+			"email"    : "justintadlock@gmail.com",
+			"homepage" : "http://justintadlock.com",
+			"role"     : "Developer"
+		}
+	],
+	"support"     : {
+		"issues" : "https://github.com/justintadlock/hybrid-core/issues",
+		"forum"  : "https://themehybrid.com/board/forums/hybrid-core"
+	},
+	"autoload"    : {
+		"psr-4" : {
+			"Hybrid\\Tools\\" : "src/"
+		}
+	},
+	"require"     : {
+		"php" : ">=5.6"
+	}
+}
