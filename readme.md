@@ -8,17 +8,9 @@ Hybrid Tools is an add-on package for the Hybrid Core WordPress framework. This 
 * PHP 5.6+ (7.0+ recommended).
 * [Composer](https://getcomposer.org/) for managing PHP dependencies.
 
-The framework is coded to work on PHP 5.6+, but only 7.0+ is officially supported.
-
-## Purchase or donate
-
-Hybrid Core is free.  However, I ask that you purchase a support membership at [Theme Hybrid](https://themehybrid.com).  Even if you don't need support, every purchase helps fund the development of this project.
-
-[Donations to the project](https://themehybrid.com/donate) are also welcome.
-
 ## Documentation
 
-The documentation is handled via Hybrid Tools's [wiki](https://github.com/themehybrid/hybrid-tools/wiki).  This is community-contributed documentation that I hope you will add to if you use the framework.
+This project is a part of the Hybrid Core framework. It may require other packages, which will be installed via Composer.
 
 ### Installation
 
