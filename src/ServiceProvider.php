@@ -19,6 +19,8 @@ use Hybrid\Contracts\Core\Application;
 /**
  * Service provider class.
  *
+ * @deprecated 1.0.0 Moved to `Hybrid\Core` package.
+ *
  * @since  1.0.0
  * @access public
  */

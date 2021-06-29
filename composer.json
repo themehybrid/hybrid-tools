@@ -19,7 +19,10 @@
 	"autoload"    : {
 		"psr-4" : {
 			"Hybrid\\Tools\\" : "src/"
-		}
+		},
+		"files" : [
+			"src/functions-helpers.php"
+		]
 	},
 	"require"     : {
 		"php" : ">=5.6"
