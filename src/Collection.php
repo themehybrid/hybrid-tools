@@ -37,7 +37,6 @@ class Collection extends ArrayObject implements JsonSerializable {
 	 * @return void
 	 */
 	public function add( $name, $value ) {
-
 		$this->offsetSet( $name, $value );
 	}
 
@@ -50,7 +49,6 @@ class Collection extends ArrayObject implements JsonSerializable {
 	 * @return void
 	 */
 	public function remove( $name ) {
-
 		$this->offsetUnset( $name );
 	}
 
@@ -63,7 +61,6 @@ class Collection extends ArrayObject implements JsonSerializable {
 	 * @return bool
 	 */
 	public function has( $name ) {
-
 		return $this->offsetExists( $name );
 	}
 
@@ -76,7 +73,6 @@ class Collection extends ArrayObject implements JsonSerializable {
 	 * @return mixed
 	 */
 	public function get( $name ) {
-
 		return $this->offsetGet( $name );
 	}
 
@@ -88,7 +84,6 @@ class Collection extends ArrayObject implements JsonSerializable {
 	 * @return array
 	 */
 	public function all() {
-
 		return $this->getArrayCopy();
 	}
 
@@ -103,7 +98,6 @@ class Collection extends ArrayObject implements JsonSerializable {
 	 * @return void
 	 */
 	public function __set( $name, $value ) {
-
 		$this->offsetSet( $name, $value );
 	}
 
@@ -116,7 +110,6 @@ class Collection extends ArrayObject implements JsonSerializable {
 	 * @return void
 	 */
 	public function __unset( $name ) {
-
 		$this->offsetUnset( $name );
 	}
 
@@ -129,7 +122,6 @@ class Collection extends ArrayObject implements JsonSerializable {
 	 * @return bool
 	 */
 	public function __isset( $name ) {
-
 		return $this->offsetExists( $name );
 	}
 
@@ -142,7 +134,6 @@ class Collection extends ArrayObject implements JsonSerializable {
 	 * @return mixed
 	 */
 	public function __get( $name ) {
-
 		return $this->offSetGet( $name );
 	}
 
