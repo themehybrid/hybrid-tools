@@ -1,6 +1,6 @@
 {
 	"name"        : "themehybrid/hybrid-tools",
-	"description" : "Add-on tools for the Hybrid Core framework.",
+	"description" : "Helper tools and functions.",
 	"keywords"    : [ "wordpress" ],
 	"homepage"    : "https://github.com/themehybrid/hybrid-tools",
 	"license"     : "GPL-2.0-or-later",
