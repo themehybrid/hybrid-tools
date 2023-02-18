@@ -19,7 +19,15 @@
 		"forum": "https://themehybrid.com/board/forums/hybrid-core"
 	},
 	"require": {
-		"php": ">=7.4"
+		"php": ">=8.0",
+		"league/commonmark": "^2.3.7",
+		"nesbot/carbon": "^2.63.0",
+		"ramsey/uuid": "^4.6.0",
+		"voku/portable-ascii": "^2.0.1"
+	},
+	"suggest": {
+		"symfony/var-dumper": "Required to use the dump method (^6.1.0).",
+		"vlucas/phpdotenv": "Required to use the Env class and env helper (^5.4.1)."
 	},
 	"autoload": {
 		"psr-4": {
