@@ -2,9 +2,15 @@
 
 You can see the changes made via the [commit log](https://github.com/themehybrid/hybrid-tools/commits/master) for the latest release.
 
-## [2.0.0] - 2023-02-01
+## [2.0.0.beta.1] - 2023-02-22
 
-### Added
+### Changed
+
+- Add back deprecated second param to `Hybrid\Tools\Collection::add()` for legacy support
+
+## [2.0.0.alpha.1] - 2023-02-01
+
+### Added / Changed
 
 - Collections: [v9.24.0](https://github.com/illuminate/collections/tree/v9.24.0)
   - Traits\EnumeratesValues.php
