@@ -1531,9 +1531,18 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Add an item to the collection.
      *
      * @param  TValue $item
+     * @param  mixed  $value Deprecated: This parameter will be removed in a future release.
      * @return $this
      */
-    public function add( $item ) {
+    public function add( $item, $value = null ) {
+
+        if ( func_num_args() === 2 ) {
+            @trigger_error( __METHOD__ . '() now only accept single parameter of type TValue, second parameter ($value) is deprecated, use Collection::put(), if you want same behaviour.', E_USER_DEPRECATED );
+            $this->put( $item, $value );
+
+            return $this;
+        }
+
         $this->items[] = $item;
 
         return $this;
