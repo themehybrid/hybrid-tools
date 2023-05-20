@@ -284,3 +284,30 @@ if ( ! function_exists( __NAMESPACE__ . '\\config' ) ) {
         return app( 'config' )->get( $key, $default );
     }
 }
+
+if ( ! function_exists( __NAMESPACE__ . '\\str' ) ) {
+    /**
+     * Get a new stringable object from the given string.
+     *
+     * @param  string|null $string
+     * @return \Hybrid\Tools\Stringable|mixed
+     */
+    function str( $string = null ) {
+        if ( func_num_args() === 0 ) {
+            return new class()
+            {
+
+                public function __call( $method, $parameters ) {
+                    return Str::$method( ...$parameters );
+                }
+
+                public function __toString() {
+                    return '';
+                }
+
+            };
+        }
+
+        return Str::of( $string );
+    }
+}
