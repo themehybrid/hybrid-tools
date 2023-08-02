@@ -8,7 +8,7 @@
  * be named rather than numeric if you need easy access.
  *
  * @package   HybridCore
- * @link      https://themehybrid.com/hybrid-core
+ * @link      https://github.com/themehybrid/hybrid-tools
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2008 - 2021, Justin Tadlock
