@@ -5,7 +5,7 @@ Hybrid Tools is a collection of helper classes and functions for developing plug
 ## Requirements
 
 * WordPress 4.9.6+.
-* PHP 5.6+ (7.0+ recommended).
+* PHP 7.4+ (8.0+ recommended).
 * [Composer](https://getcomposer.org/) for managing PHP dependencies.
 
 ## Copyright and License
