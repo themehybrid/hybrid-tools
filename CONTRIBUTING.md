@@ -12,11 +12,11 @@ Please don't make pull requests against the `master` branch.  This is the latest
 
 ## Theme review guidelines
 
-Hybrid Core is developed with the WordPress.org [theme review guidelines](https://make.wordpress.org/themes/handbook/review) in mind.  While the framework is not a theme in and of itself, many theme authors use it within their themes on the official theme repository.  These guidelines should sufficiently cover any other marketplace or theme shop rules for submission.  All new features and code changes must abide by these guidelines to make it into the project.
+Hybrid Tools is developed with the WordPress.org [theme review guidelines](https://make.wordpress.org/themes/handbook/review) in mind.  These guidelines should sufficiently cover any other marketplace or theme shop rules for submission.  All new features and code changes must abide by these guidelines to make it into the project.
 
 ## Coding standards
 
-Hybrid Core follows a mixture of the following standards.
+Hybrid Tools follows a mixture of the following standards.
 
 - [PSR-1: Basic Coding Standard](https://www.php-fig.org/psr/psr-1)
 - [PSR-2: Coding Style](https://www.php-fig.org/psr/psr-2/)
@@ -31,8 +31,8 @@ All text strings follow U.S. English by default.  While such guides are generall
 
 ## Licensing
 
-Any code contributed to Hybrid Core via patches, pull requests, or other means will be licensed under the [GPL version 2](http://www.gnu.org/licenses/old-licenses/gpl-2.0.html) or later.  By contributing code to the project, you provide consent to use such code under this license.  The exception to this rule is when bringing in third-party code with an alternate open source license.
+Any code contributed to Hybrid Core via patches, pull requests, or other means will be licensed under the [GPL version 2](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html) or later.  By contributing code to the project, you provide consent to use such code under this license.  The exception to this rule is when bringing in third-party code with an alternate open source license.
 
 ## Versioning
 
-Hybrid Core uses [semantic versioning](http://semver.org).  Version numbers will look like `3.2.1` where `3` is the "major" release, `2` is the minor release, and `1` is the patch release.
+Hybrid Tools uses [semantic versioning](https://semver.org).  Version numbers will look like `3.2.1` where `3` is the "major" release, `2` is the minor release, and `1` is the patch release.
