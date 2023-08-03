@@ -169,9 +169,8 @@ class Arr {
     /**
      * Return the first element in an array passing a given truth test.
      *
-     * @param  iterable      $array
-     * @param  callable|null $callback
-     * @param  mixed         $default
+     * @param  iterable $array
+     * @param  mixed    $default
      * @return mixed
      */
     public static function first( $array, ?callable $callback = null, $default = null ) {
@@ -197,9 +196,8 @@ class Arr {
     /**
      * Return the last element in an array passing a given truth test.
      *
-     * @param  array         $array
-     * @param  callable|null $callback
-     * @param  mixed         $default
+     * @param  array $array
+     * @param  mixed $default
      * @return mixed
      */
     public static function last( $array, ?callable $callback = null, $default = null ) {
@@ -520,8 +518,7 @@ class Arr {
     /**
      * Run a map over each of the items in the array.
      *
-     * @param  array    $array
-     * @param  callable $callback
+     * @param  array $array
      * @return array
      */
     public static function map( array $array, callable $callback ) {
@@ -747,8 +744,7 @@ class Arr {
     /**
      * Filter the array using the given callback.
      *
-     * @param  array    $array
-     * @param  callable $callback
+     * @param  array $array
      * @return array
      */
     public static function where( $array, callable $callback ) {

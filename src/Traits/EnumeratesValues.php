@@ -14,7 +14,6 @@ use JsonSerializable;
 use Symfony\Component\VarDumper\VarDumper;
 use Traversable;
 use UnitEnum;
-
 use function Hybrid\Tools\data_get;
 use function Hybrid\Tools\value;
 
@@ -476,7 +475,7 @@ trait EnumeratesValues {
      *
      * @template TWhenEmptyReturnType
      */
-    public function whenEmpty( callable $callback, callable $default = null ) {
+    public function whenEmpty( callable $callback, ?callable $default = null ) {
         return $this->when( $this->isEmpty(), $callback, $default );
     }
 
@@ -489,7 +488,7 @@ trait EnumeratesValues {
      *
      * @template TWhenNotEmptyReturnType
      */
-    public function whenNotEmpty( callable $callback, callable $default = null ) {
+    public function whenNotEmpty( callable $callback, ?callable $default = null ) {
         return $this->when( $this->isNotEmpty(), $callback, $default );
     }
 
@@ -502,7 +501,7 @@ trait EnumeratesValues {
      *
      * @template TUnlessEmptyReturnType
      */
-    public function unlessEmpty( callable $callback, callable $default = null ) {
+    public function unlessEmpty( callable $callback, ?callable $default = null ) {
         return $this->whenNotEmpty( $callback, $default );
     }
 
@@ -515,7 +514,7 @@ trait EnumeratesValues {
      *
      * @template TUnlessNotEmptyReturnType
      */
-    public function unlessNotEmpty( callable $callback, callable $default = null ) {
+    public function unlessNotEmpty( callable $callback, ?callable $default = null ) {
         return $this->whenEmpty( $callback, $default );
     }
 
@@ -716,8 +715,7 @@ trait EnumeratesValues {
     /**
      * Reduce the collection to multiple aggregate values.
      *
-     * @param  callable $callback
-     * @param  mixed    ...$initial
+     * @param  mixed ...$initial
      * @return array
      * @throws \UnexpectedValueException
      */
@@ -822,9 +820,13 @@ trait EnumeratesValues {
         return array_map(static function ( $value ) {
             if ( $value instanceof JsonSerializable ) {
                 return $value->jsonSerialize();
-            } elseif ( $value instanceof Jsonable ) {
+            }
+
+            if ( $value instanceof Jsonable ) {
                 return json_decode( $value->toJson(), true );
-            } elseif ( $value instanceof Arrayable ) {
+            }
+
+            if ( $value instanceof Arrayable ) {
                 return $value->toArray();
             }
 
@@ -909,17 +911,29 @@ trait EnumeratesValues {
     protected function getArrayableItems( $items ) {
         if ( is_array( $items ) ) {
             return $items;
-        } elseif ( $items instanceof Enumerable ) {
+        }
+
+        if ( $items instanceof Enumerable ) {
             return $items->all();
-        } elseif ( $items instanceof Arrayable ) {
+        }
+
+        if ( $items instanceof Arrayable ) {
             return $items->toArray();
-        } elseif ( $items instanceof Jsonable ) {
+        }
+
+        if ( $items instanceof Jsonable ) {
             return json_decode( $items->toJson(), true );
-        } elseif ( $items instanceof JsonSerializable ) {
+        }
+
+        if ( $items instanceof JsonSerializable ) {
             return (array) $items->jsonSerialize();
-        } elseif ( $items instanceof Traversable ) {
+        }
+
+        if ( $items instanceof Traversable ) {
             return iterator_to_array( $items );
-        } elseif ( $items instanceof UnitEnum ) {
+        }
+
+        if ( $items instanceof UnitEnum ) {
             return [ $items ];
         }
 
@@ -1021,7 +1035,6 @@ trait EnumeratesValues {
     /**
      * Make a function using another function, by negating its result.
      *
-     * @param  \Closure $callback
      * @return \Closure
      */
     protected function negate( Closure $callback ) {

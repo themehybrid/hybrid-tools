@@ -1198,7 +1198,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Sort through each item with a callback.
      *
-     * @param (callable(TValue, TValue): int)|null|int $callback
+     * @param callable(TValue, TValue): int|int|null $callback
      * @return static
      */
     public function sort( $callback = null ) {
@@ -1321,7 +1321,6 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Take items in the collection until a given point in time.
      *
-     * @param  \DateTimeInterface $timeout
      * @return static
      */
     public function takeUntilTimeout( DateTimeInterface $timeout ) {
@@ -1481,8 +1480,6 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
 
     /**
      * Count the number of items in the collection.
-     *
-     * @return int
      */
     public function count(): int {
         if ( is_array( $this->source ) ) {
@@ -1516,9 +1513,9 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Explode the "value" and "key" arguments passed to "pluck".
      *
-     * @param  string|string[]      $value
-     * @param  string|string[]|null $key
-     * @return array{string[],string[]|null}
+     * @param  string|array<string>      $value
+     * @param  string|array<string>|null $key
+     * @return array{array<string>,array<string>|null}
      */
     protected function explodePluckParameters( $value, $key ) {
         $value = is_string( $value ) ? explode( '.', $value ) : $value;

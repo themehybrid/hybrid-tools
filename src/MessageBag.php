@@ -337,8 +337,6 @@ class MessageBag implements Jsonable, JsonSerializable, MessageBagContract, Mess
 
     /**
      * Get the number of messages in the message bag.
-     *
-     * @return int
      */
     public function count(): int {
         return count( $this->messages, COUNT_RECURSIVE ) - count( $this->messages );

@@ -84,8 +84,6 @@ class DateFactory {
 
     /**
      * The default class that will be used for all created dates.
-     *
-     * @var string
      */
     const DEFAULT_CLASS_NAME = Carbon::class;
 
@@ -120,9 +118,13 @@ class DateFactory {
     public static function use( $handler ) {
         if ( is_callable( $handler ) && is_object( $handler ) ) {
             return static::useCallable( $handler );
-        } elseif ( is_string( $handler ) ) {
+        }
+
+        if ( is_string( $handler ) ) {
             return static::useClass( $handler );
-        } elseif ( $handler instanceof Factory ) {
+        }
+
+        if ( $handler instanceof Factory ) {
             return static::useFactory( $handler );
         }
 
@@ -143,7 +145,6 @@ class DateFactory {
     /**
      * Execute the given callable on each date creation.
      *
-     * @param  callable $callable
      * @return void
      */
     public static function useCallable( callable $callable ) {

@@ -788,7 +788,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
                 $new[] = $item;
             }
 
-            $position++;
+            ++$position;
         }
 
         return new static( $new );
@@ -1091,7 +1091,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
             $size = $groupSize;
 
             if ( $i < $remain ) {
-                $size++;
+                ++$size;
             }
 
             if ( $size ) {
@@ -1204,7 +1204,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     /**
      * Sort through each item with a callback.
      *
-     * @param (callable(TValue, TValue): int)|null|int $callback
+     * @param callable(TValue, TValue): int|int|null $callback
      * @return static
      */
     public function sort( $callback = null ) {
@@ -1510,8 +1510,6 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
 
     /**
      * Count the number of items in the collection.
-     *
-     * @return int
      */
     public function count(): int {
         return count( $this->items );
@@ -1561,7 +1559,6 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Determine if an item exists at an offset.
      *
      * @param  TKey $key
-     * @return bool
      */
     public function offsetExists( $key ): bool {
         return isset( $this->items[ $key ] );
@@ -1582,7 +1579,6 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param  TKey|null $key
      * @param  TValue    $value
-     * @return void
      */
     public function offsetSet( $key, $value ): void {
         if ( is_null( $key ) ) {
@@ -1596,7 +1592,6 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Unset the item at a given offset.
      *
      * @param  TKey $key
-     * @return void
      */
     public function offsetUnset( $key ): void {
         unset( $this->items[ $key ] );

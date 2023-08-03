@@ -11,7 +11,7 @@ class Carbon extends BaseCarbon {
     use Conditionable;
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public static function setTestNow( $testNow = null ) {
         BaseCarbon::setTestNow( $testNow );

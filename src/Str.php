@@ -206,9 +206,9 @@ class Str {
     /**
      * Determine if a given string contains a given substring.
      *
-     * @param  string          $haystack
-     * @param  string|string[] $needles
-     * @param  bool            $ignoreCase
+     * @param  string               $haystack
+     * @param  string|array<string> $needles
+     * @param  bool                 $ignoreCase
      * @return bool
      */
     public static function contains( $haystack, $needles, $ignoreCase = false ) {
@@ -229,9 +229,9 @@ class Str {
     /**
      * Determine if a given string contains all array values.
      *
-     * @param  string   $haystack
-     * @param  string[] $needles
-     * @param  bool     $ignoreCase
+     * @param  string        $haystack
+     * @param  array<string> $needles
+     * @param  bool          $ignoreCase
      * @return bool
      */
     public static function containsAll( $haystack, array $needles, $ignoreCase = false ) {
@@ -252,8 +252,8 @@ class Str {
     /**
      * Determine if a given string ends with a given substring.
      *
-     * @param  string          $haystack
-     * @param  string|string[] $needles
+     * @param  string               $haystack
+     * @param  string|array<string> $needles
      * @return bool
      */
     public static function endsWith( $haystack, $needles ) {
@@ -666,10 +666,9 @@ class Str {
     /**
      * Set the callable that will be used to generate random strings.
      *
-     * @param  callable|null $factory
      * @return void
      */
-    public static function createRandomStringsUsing( callable $factory = null ) {
+    public static function createRandomStringsUsing( ?callable $factory = null ) {
         static::$randomStringFactory = $factory;
     }
 
@@ -692,7 +691,7 @@ class Str {
 
             static::$randomStringFactory = $factoryCache;
 
-            $next++;
+            ++$next;
 
             return $randomString;
         };
@@ -718,8 +717,6 @@ class Str {
     /**
      * Repeat the given string.
      *
-     * @param  string $string
-     * @param  int    $times
      * @return string
      */
     public static function repeat( string $string, int $times ) {
@@ -749,9 +746,9 @@ class Str {
     /**
      * Replace the given value in the given string.
      *
-     * @param  string|string[] $search
-     * @param  string|string[] $replace
-     * @param  string|string[] $subject
+     * @param  string|array<string> $search
+     * @param  string|array<string> $replace
+     * @param  string|array<string> $subject
      * @return string
      */
     public static function replace( $search, $replace, $subject ) {
@@ -823,7 +820,6 @@ class Str {
     /**
      * Reverse the given string.
      *
-     * @param  string $value
      * @return string
      */
     public static function reverse( string $value ) {
@@ -955,8 +951,8 @@ class Str {
     /**
      * Determine if a given string starts with a given substring.
      *
-     * @param  string          $haystack
-     * @param  string|string[] $needles
+     * @param  string               $haystack
+     * @param  string|array<string> $needles
      * @return bool
      */
     public static function startsWith( $haystack, $needles ) {
@@ -1123,10 +1119,9 @@ class Str {
     /**
      * Set the callable that will be used to generate UUIDs.
      *
-     * @param  callable|null $factory
      * @return void
      */
-    public static function createUuidsUsing( callable $factory = null ) {
+    public static function createUuidsUsing( ?callable $factory = null ) {
         static::$uuidFactory = $factory;
     }
 
@@ -1149,7 +1144,7 @@ class Str {
 
             static::$uuidFactory = $factoryCache;
 
-            $next++;
+            ++$next;
 
             return $uuid;
         };
@@ -1166,10 +1161,9 @@ class Str {
     /**
      * Always return the same UUID when generating new UUIDs.
      *
-     * @param  \Closure|null $callback
      * @return \Ramsey\Uuid\UuidInterface
      */
-    public static function freezeUuids( Closure $callback = null ) {
+    public static function freezeUuids( ?Closure $callback = null ) {
         $uuid = self::uuid();
 
         self::createUuidsUsing( static fn() => $uuid );

@@ -24,8 +24,7 @@ class HigherOrderCollectionProxy {
     /**
      * Create a new proxy instance.
      *
-     * @param  \Hybrid\Tools\Enumerable $collection
-     * @param  string                   $method
+     * @param  string $method
      * @return void
      */
     public function __construct( Enumerable $collection, $method ) {

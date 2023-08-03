@@ -155,7 +155,7 @@ class Stringable implements JsonSerializable {
     /**
      * Determine if a given string contains a given substring.
      *
-     * @param  string|string[] $needles
+     * @param  string|array<string> $needles
      * @return bool
      */
     public function contains( $needles ) {
@@ -185,7 +185,7 @@ class Stringable implements JsonSerializable {
     /**
      * Determine if a given string ends with a given substring.
      *
-     * @param  string|string[] $needles
+     * @param  string|array<string> $needles
      * @return bool
      */
     public function endsWith( $needles ) {
@@ -199,7 +199,7 @@ class Stringable implements JsonSerializable {
      * @return bool
      */
     public function exactly( $value ) {
-        if ( $value instanceof Stringable ) {
+        if ( $value instanceof self ) {
             $value = $value->toString();
         }
 
@@ -459,7 +459,6 @@ class Stringable implements JsonSerializable {
     /**
      * Call the given callback and return a new string.
      *
-     * @param  callable $callback
      * @return static
      */
     public function pipe( callable $callback ) {
@@ -519,7 +518,6 @@ class Stringable implements JsonSerializable {
     /**
      * Repeat the string.
      *
-     * @param  int $times
      * @return static
      */
     public function repeat( int $times ) {
@@ -529,8 +527,8 @@ class Stringable implements JsonSerializable {
     /**
      * Replace the given value in the given string.
      *
-     * @param  string|string[] $search
-     * @param  string|string[] $replace
+     * @param  string|array<string> $search
+     * @param  string|array<string> $replace
      * @return static
      */
     public function replace( $search, $replace ) {
@@ -685,7 +683,7 @@ class Stringable implements JsonSerializable {
     /**
      * Determine if a given string starts with a given substring.
      *
-     * @param  string|string[] $needles
+     * @param  string|array<string> $needles
      * @return bool
      */
     public function startsWith( $needles ) {
@@ -806,9 +804,9 @@ class Stringable implements JsonSerializable {
     /**
      * Execute the given callback if the string contains a given substring.
      *
-     * @param  string|string[] $needles
-     * @param  callable        $callback
-     * @param  callable|null   $default
+     * @param  string|array<string> $needles
+     * @param  callable             $callback
+     * @param  callable|null        $default
      * @return static
      */
     public function whenContains( $needles, $callback, $default = null ) {
@@ -852,9 +850,9 @@ class Stringable implements JsonSerializable {
     /**
      * Execute the given callback if the string ends with a given substring.
      *
-     * @param  string|string[] $needles
-     * @param  callable        $callback
-     * @param  callable|null   $default
+     * @param  string|array<string> $needles
+     * @param  callable             $callback
+     * @param  callable|null        $default
      * @return static
      */
     public function whenEndsWith( $needles, $callback, $default = null ) {
@@ -910,9 +908,9 @@ class Stringable implements JsonSerializable {
     /**
      * Execute the given callback if the string starts with a given substring.
      *
-     * @param  string|string[] $needles
-     * @param  callable        $callback
-     * @param  callable|null   $default
+     * @param  string|array<string> $needles
+     * @param  callable             $callback
+     * @param  callable|null        $default
      * @return static
      */
     public function whenStartsWith( $needles, $callback, $default = null ) {
@@ -1013,8 +1011,6 @@ class Stringable implements JsonSerializable {
 
     /**
      * Convert the object to a string when JSON encoded.
-     *
-     * @return string
      */
     public function jsonSerialize(): string {
         return $this->__toString();

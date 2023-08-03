@@ -16,7 +16,6 @@
 namespace Hybrid\Tools;
 
 use Closure;
-
 use function Hybrid\View\app;
 
 if ( ! function_exists( __NAMESPACE__ . '\\collect' ) ) {
