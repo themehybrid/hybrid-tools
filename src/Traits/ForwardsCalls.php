@@ -43,11 +43,7 @@ trait ForwardsCalls {
     protected function forwardDecoratedCallTo( $object, $method, $parameters ) {
         $result = $this->forwardCallTo( $object, $method, $parameters );
 
-        if ( $result === $object ) {
-            return $this;
-        }
-
-        return $result;
+        return $result === $object ? $this : $result;
     }
 
     /**

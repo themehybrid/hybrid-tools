@@ -20,21 +20,25 @@
 	},
 	"require": {
 		"php": ">=8.0",
+		"ext-ctype": "*",
+		"ext-filter": "*",
 		"league/commonmark": "^2.3.7",
-		"nesbot/carbon": "^2.63.0",
-		"ramsey/uuid": "^4",
+		"nesbot/carbon": "^2.67",
+		"ramsey/uuid": "^4.7",
+		"symfony/uid": "^5.0 || ^6.0 || ^6.1 || ^6.2",
 		"vlucas/phpdotenv": "^5.5",
 		"voku/portable-ascii": "^2.0.1"
 	},
 	"suggest": {
-		"symfony/var-dumper": "Required to use the dump method (^6.1.0)."
+		"symfony/var-dumper": "Required to use the dump method (^6.1.0 || ^6.2)."
 	},
 	"autoload": {
 		"psr-4": {
 			"Hybrid\\Tools\\": "src/"
 		},
 		"files": [
-			"src/functions-helpers.php"
+			"src/functions-helpers.php",
+			"src/WordPress/functions-helpers.php"
 		]
 	}
 }

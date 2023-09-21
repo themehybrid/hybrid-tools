@@ -16,7 +16,95 @@
 namespace Hybrid\Tools;
 
 use Closure;
+use Countable;
+use Hybrid\Tools\Facades\Date;
 use function Hybrid\app;
+
+if ( ! function_exists( __NAMESPACE__ . '\\append_config' ) ) {
+    /**
+     * Assign high numeric IDs to a config item to force appending.
+     *
+     * @param  array $array
+     * @return array
+     */
+    function append_config( array $array ) {
+        $start = 9999;
+
+        foreach ( $array as $key => $value ) {
+            if ( is_numeric( $key ) ) {
+                ++$start;
+
+                $array[ $start ] = Arr::pull( $array, $key );
+            }
+        }
+
+        return $array;
+    }
+}
+
+if ( ! function_exists( __NAMESPACE__ . '\\blank' ) ) {
+    /**
+     * Determine if the given value is "blank".
+     *
+     * @param  mixed $value
+     * @return bool
+     */
+    function blank( $value ) {
+        if ( is_null( $value ) ) {
+            return true;
+        }
+
+        if ( is_string( $value ) ) {
+            return trim( $value ) === '';
+        }
+
+        if ( is_numeric( $value ) || is_bool( $value ) ) {
+            return false;
+        }
+
+        if ( $value instanceof Countable ) {
+            return count( $value ) === 0;
+        }
+
+        return empty( $value );
+    }
+}
+
+if ( ! function_exists( __NAMESPACE__ . '\\class_basename' ) ) {
+    /**
+     * Get the class "basename" of the given object / class.
+     *
+     * @param  string|object $class
+     * @return string
+     */
+    function class_basename( $class ) {
+        $class = is_object( $class ) ? get_class( $class ) : $class;
+
+        return basename( str_replace( '\\', '/', $class ) );
+    }
+}
+
+if ( ! function_exists( __NAMESPACE__ . '\\class_uses_recursive' ) ) {
+    /**
+     * Returns all traits used by a class, its parent classes and trait of their traits.
+     *
+     * @param  object|string $class
+     * @return array
+     */
+    function class_uses_recursive( $class ) {
+        if ( is_object( $class ) ) {
+            $class = get_class( $class );
+        }
+
+        $results = [];
+
+        foreach ( array_reverse( class_parents( $class ) ) + [ $class => $class ] as $class ) {
+            $results += trait_uses_recursive( $class );
+        }
+
+        return array_unique( $results );
+    }
+}
 
 if ( ! function_exists( __NAMESPACE__ . '\\collect' ) ) {
     /**
@@ -29,7 +117,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\collect' ) ) {
      * @template TKey of array-key
      * @template TValue
      */
-    function collect( $value = null ) {
+    function collect( $value = [] ) {
         return new Collection( $value );
     }
 }
@@ -163,6 +251,41 @@ if ( ! function_exists( __NAMESPACE__ . '\\data_set' ) ) {
     }
 }
 
+if ( ! function_exists( __NAMESPACE__ . '\\data_forget' ) ) {
+    /**
+     * Remove / unset an item from an array or object using "dot" notation.
+     *
+     * @param  mixed                 $target
+     * @param  string|array|int|null $key
+     * @return mixed
+     */
+    function data_forget( &$target, $key ) {
+        $segments = is_array( $key ) ? $key : explode( '.', $key );
+
+        if ( ( $segment = array_shift( $segments ) ) === '*' && Arr::accessible( $target ) ) {
+            if ( $segments ) {
+                foreach ( $target as &$inner ) {
+                    data_forget( $inner, $segments );
+                }
+            }
+        } elseif ( Arr::accessible( $target ) ) {
+            if ( $segments && Arr::exists( $target, $segment ) ) {
+                data_forget( $target[ $segment ], $segments );
+            } else {
+                Arr::forget( $target, $segment );
+            }
+        } elseif ( is_object( $target ) ) {
+            if ( $segments && isset( $target->{$segment} ) ) {
+                data_forget( $target->{$segment}, $segments );
+            } elseif ( isset( $target->{$segment} ) ) {
+                unset( $target->{$segment} );
+            }
+        }
+
+        return $target;
+    }
+}
+
 if ( ! function_exists( __NAMESPACE__ . '\\head' ) ) {
     /**
      * Get the first element of an array. Useful for method chaining.
@@ -192,6 +315,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\value' ) ) {
      * Return the default value of the given value.
      *
      * @param  mixed $value
+     * @param mixed ...$args
      * @return mixed
      */
     function value( $value, ...$args ) {
@@ -201,21 +325,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\value' ) ) {
     }
 }
 
-if ( ! function_exists( 'env' ) ) {
-    /**
-     * Gets the value of an environment variable.
-     *
-     * @param  string $key
-     * @param  mixed  $default
-     * @return mixed
-     */
-    function env( $key, $default = null ) {
-        return Env::get( $key, $default );
-    }
-}
-
 if ( ! function_exists( __NAMESPACE__ . '\\e' ) ) {
-
     /**
      * Encode HTML special characters in a string.
      *
@@ -236,51 +346,94 @@ if ( ! function_exists( __NAMESPACE__ . '\\e' ) ) {
             $value = $value->value;
         }
 
-        return htmlspecialchars( $value ?? '', ENT_QUOTES, 'UTF-8', $doubleEncode );
+        return htmlspecialchars( $value ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', $doubleEncode );
     }
 }
 
-if ( ! function_exists( __NAMESPACE__ . '\\tap' ) ) {
-
+if ( ! function_exists( 'env' ) ) {
     /**
-     * Call the given Closure with the given value then return the value.
+     * Gets the value of an environment variable.
      *
-     * @param  mixed         $value
-     * @param  callable|null $callback
+     * @param  string $key
+     * @param  mixed  $default
      * @return mixed
      */
-    function tap( $value, $callback = null ) {
-        if ( is_null( $callback ) ) {
-            return new HigherOrderTapProxy( $value );
-        }
-
-        $callback( $value );
-
-        return $value;
+    function env( $key, $default = null ) {
+        return Env::get( $key, $default );
     }
 }
 
-if ( ! function_exists( __NAMESPACE__ . '\\config' ) ) {
-
+if ( ! function_exists( __NAMESPACE__ . '\\filled' ) ) {
     /**
-     * Get / set the specified configuration value.
+     * Determine if a value is "filled".
      *
-     * If an array is passed as the key, we will assume you want to set an array of values.
-     *
-     * @param  array|string|null $key
-     * @param  mixed             $default
-     * @return mixed|\Hybrid\Tools\Config\Repository
+     * @param  mixed $value
+     * @return bool
      */
-    function config( $key = null, $default = null ) {
-        if ( is_null( $key ) ) {
-            return app( 'config' );
+    function filled( $value ) {
+        return ! blank( $value );
+    }
+}
+
+if ( ! function_exists( __NAMESPACE__ . '\\object_get' ) ) {
+    /**
+     * Get an item from an object using "dot" notation.
+     *
+     * @param  object      $object
+     * @param  string|null $key
+     * @param  mixed       $default
+     * @return mixed
+     */
+    function object_get( $object, $key, $default = null ) {
+        if ( is_null( $key ) || trim( $key ) === '' ) {
+            return $object;
         }
 
-        if ( is_array( $key ) ) {
-            return app( 'config' )->set( $key );
+        foreach ( explode( '.', $key ) as $segment ) {
+            if ( ! is_object( $object ) || ! isset( $object->{$segment} ) ) {
+                return value( $default );
+            }
+
+            $object = $object->{$segment};
         }
 
-        return app( 'config' )->get( $key, $default );
+        return $object;
+    }
+}
+
+if ( ! function_exists( __NAMESPACE__ . '\\optional' ) ) {
+    /**
+     * Provide access to optional objects.
+     *
+     * @param  mixed $value
+     * @return mixed
+     */
+    function optional( $value = null, ?callable $callback = null ) {
+        if ( is_null( $callback ) ) {
+            return new Optional( $value );
+        }
+
+        if ( ! is_null( $value ) ) {
+            return $callback( $value );
+        }
+    }
+}
+
+if ( ! function_exists( __NAMESPACE__ . '\\preg_replace_array' ) ) {
+    /**
+     * Replace a given pattern with each value in the array in sequentially.
+     *
+     * @param  string $pattern
+     * @param  array  $replacements
+     * @param  string $subject
+     * @return string
+     */
+    function preg_replace_array( $pattern, array $replacements, $subject ) {
+        return preg_replace_callback($pattern, static function () use ( &$replacements ) {
+            foreach ( $replacements as $value ) {
+                return array_shift( $replacements );
+            }
+        }, $subject);
     }
 }
 
@@ -308,5 +461,187 @@ if ( ! function_exists( __NAMESPACE__ . '\\str' ) ) {
         }
 
         return Str::of( $string );
+    }
+}
+
+if ( ! function_exists( __NAMESPACE__ . '\\tap' ) ) {
+    /**
+     * Call the given Closure with the given value then return the value.
+     *
+     * @param  mixed         $value
+     * @param  callable|null $callback
+     * @return mixed
+     */
+    function tap( $value, $callback = null ) {
+        if ( is_null( $callback ) ) {
+            return new HigherOrderTapProxy( $value );
+        }
+
+        $callback( $value );
+
+        return $value;
+    }
+}
+
+if ( ! function_exists( __NAMESPACE__ . '\\throw_if' ) ) {
+    /**
+     * Throw the given exception if the given condition is true.
+     *
+     * @param  mixed                                      $condition
+     * @param  TException|class-string<TException>|string $exception
+     * @param  mixed                                      ...$parameters
+     * @return mixed
+     * @throws TException
+     *
+     * @template TException of \Throwable
+     */
+    function throw_if( $condition, $exception = 'RuntimeException', ...$parameters ) {
+        if ( $condition ) {
+            if ( is_string( $exception ) && class_exists( $exception ) ) {
+                $exception = new $exception( ...$parameters );
+            }
+
+            throw is_string( $exception ) ? new \RuntimeException( $exception ) : $exception;
+        }
+
+        return $condition;
+    }
+}
+
+if ( ! function_exists( __NAMESPACE__ . '\\throw_unless' ) ) {
+    /**
+     * Throw the given exception unless the given condition is true.
+     *
+     * @param  mixed                                      $condition
+     * @param  TException|class-string<TException>|string $exception
+     * @param  mixed                                      ...$parameters
+     * @return mixed
+     * @throws TException
+     *
+     * @template TException of \Throwable
+     */
+    function throw_unless( $condition, $exception = 'RuntimeException', ...$parameters ) {
+        throw_if( ! $condition, $exception, ...$parameters );
+
+        return $condition;
+    }
+}
+
+if ( ! function_exists( __NAMESPACE__ . '\\trait_uses_recursive' ) ) {
+    /**
+     * Returns all traits used by a trait and its traits.
+     *
+     * @param  object|string $trait
+     * @return array
+     */
+    function trait_uses_recursive( $trait ) {
+        $traits = class_uses( $trait ) ?: [];
+
+        foreach ( $traits as $trait ) {
+            $traits += trait_uses_recursive( $trait );
+        }
+
+        return $traits;
+    }
+}
+
+if ( ! function_exists( __NAMESPACE__ . '\\transform' ) ) {
+    /**
+     * Transform the given value if it is present.
+     *
+     * @param  TValue                                   $value
+     * @param  callable(TValue): TReturn                $callback
+     * @param  TDefault|callable(TValue): TDefault|null $default
+     * @return ($value is empty ? ($default is null ? null : TDefault) : TReturn)
+     *
+     * @template TValue of mixed
+     * @template TReturn of mixed
+     * @template TDefault of mixed
+     */
+    function transform( $value, callable $callback, $default = null ) {
+        if ( filled( $value ) ) {
+            return $callback( $value );
+        }
+
+        if ( is_callable( $default ) ) {
+            return $default( $value );
+        }
+
+        return $default;
+    }
+}
+
+if ( ! function_exists( __NAMESPACE__ . '\\windows_os' ) ) {
+    /**
+     * Determine whether the current environment is Windows based.
+     *
+     * @return bool
+     */
+    function windows_os() {
+        return PHP_OS_FAMILY === 'Windows';
+    }
+}
+
+if ( ! function_exists( __NAMESPACE__ . '\\with' ) ) {
+    /**
+     * Return the given value, optionally passed through the given callback.
+     *
+     * @param  TValue                             $value
+     * @param  (callable(TValue): (TReturn))|null $callback
+     * @return ($callback is null ? TValue : TReturn)
+     *
+     * @template TValue
+     * @template TReturn
+     */
+    function with( $value, ?callable $callback = null ) {
+        return is_null( $callback ) ? $value : $callback( $value );
+    }
+}
+
+if ( ! function_exists( __NAMESPACE__ . '\\config' ) ) {
+
+    /**
+     * Get / set the specified configuration value.
+     *
+     * If an array is passed as the key, we will assume you want to set an array of values.
+     *
+     * @param  array|string|null $key
+     * @param  mixed             $default
+     * @return mixed|\Hybrid\Tools\Config\Repository
+     */
+    function config( $key = null, $default = null ) {
+        if ( is_null( $key ) ) {
+            return app( 'config' );
+        }
+
+        if ( is_array( $key ) ) {
+            return app( 'config' )->set( $key );
+        }
+
+        return app( 'config' )->get( $key, $default );
+    }
+}
+
+if ( ! function_exists( __NAMESPACE__ . '\\now' ) ) {
+    /**
+     * Create a new Carbon instance for the current time.
+     *
+     * @param  \DateTimeZone|string|null $tz
+     * @return \Hybrid\Tools\Carbon
+     */
+    function now( $tz = null ) {
+        return Date::now( $tz );
+    }
+}
+
+if ( ! function_exists( __NAMESPACE__ . '\\today' ) ) {
+    /**
+     * Create a new Carbon instance for the current date.
+     *
+     * @param  \DateTimeZone|string|null $tz
+     * @return \Hybrid\Tools\Carbon
+     */
+    function today( $tz = null ) {
+        return Date::today( $tz );
     }
 }
