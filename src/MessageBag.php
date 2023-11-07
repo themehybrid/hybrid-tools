@@ -132,7 +132,7 @@ class MessageBag implements Jsonable, JsonSerializable, MessageBagContract, Mess
     /**
      * Determine if messages exist for any of the given keys.
      *
-     * @param  array|string $keys
+     * @param  array|string|null $keys
      * @return bool
      */
     public function hasAny( $keys = [] ) {
@@ -149,6 +149,18 @@ class MessageBag implements Jsonable, JsonSerializable, MessageBagContract, Mess
         }
 
         return false;
+    }
+
+    /**
+     * Determine if messages don't exist for all of the given keys.
+     *
+     * @param  array|string|null $key
+     * @return bool
+     */
+    public function missing( $key ) {
+        $keys = is_array( $key ) ? $key : func_get_args();
+
+        return ! $this->hasAny( $keys );
     }
 
     /**
@@ -231,6 +243,18 @@ class MessageBag implements Jsonable, JsonSerializable, MessageBagContract, Mess
      */
     public function unique( $format = null ) {
         return array_unique( $this->all( $format ) );
+    }
+
+    /**
+     * Remove a message from the message bag.
+     *
+     * @param  string $key
+     * @return $this
+     */
+    public function forget( $key ) {
+        unset( $this->messages[ $key ] );
+
+        return $this;
     }
 
     /**

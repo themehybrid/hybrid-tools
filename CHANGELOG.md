@@ -2,6 +2,17 @@
 
 You can see the changes made via the [commit log](https://github.com/themehybrid/hybrid-tools/commits/master) for the latest release.
 
+## [2.0.1] - 2023-11-07
+
+### Changed
+
+* sync with https://github.com/illuminate/collections/releases/tag/v10.25.1
+* sync with https://github.com/illuminate/support/releases/tag/v10.25.1
+* add `with` helper function
+* add `Benchmark` class
+* add `AccessiblePrivateMethods` trait class for WordPress filters & actions use with private methods
+* add `maybe_define_constant`, `get_child_theme_file_path`, `get_child_theme_file_uri` WordPress helper functions
+
 ## [2.0.0] - 2023-08-23
 
 ### Changed
