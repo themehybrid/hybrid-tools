@@ -2,6 +2,7 @@
 
 namespace Hybrid\Tools;
 
+use ArrayAccess;
 use Closure;
 use Hybrid\Tools\Facades\Date;
 use Hybrid\Tools\Traits\Conditionable;
@@ -10,7 +11,7 @@ use Hybrid\Tools\Traits\Tappable;
 use JsonSerializable;
 use Symfony\Component\VarDumper\VarDumper;
 
-class Stringable implements JsonSerializable, ArrayAccesss {
+class Stringable implements JsonSerializable, ArrayAccess {
 
     use Conditionable;
     use Macroable;
