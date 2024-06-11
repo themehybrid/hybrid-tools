@@ -2,6 +2,12 @@
 
 You can see the changes made via the [commit log](https://github.com/themehybrid/hybrid-tools/commits/master) for the latest release.
 
+## [2.0.2] - 2024-06-11
+
+### Changed
+
+* fixed typo and performed PHP linting
+
 ## [2.0.1] - 2023-11-07
 
 ### Changed
