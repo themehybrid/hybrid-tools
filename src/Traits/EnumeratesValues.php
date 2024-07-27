@@ -2,6 +2,7 @@
 
 namespace Hybrid\Tools\Traits;
 
+use BackedEnum;
 use CachingIterator;
 use Closure;
 use Hybrid\Contracts\Arrayable;
@@ -11,15 +12,15 @@ use Hybrid\Tools\Collection;
 use Hybrid\Tools\Enumerable;
 use Hybrid\Tools\HigherOrderCollectionProxy;
 use JsonSerializable;
-use Symfony\Component\VarDumper\VarDumper;
 use Traversable;
 use UnitEnum;
+use WeakMap;
 use function Hybrid\Tools\data_get;
 use function Hybrid\Tools\value;
 
 /**
  * @template TKey of array-key
- * @template @template-covariant TValue
+ * @template-covariant TValue
  * @property-read \Hybrid\Tools\HigherOrderCollectionProxy $average
  * @property-read \Hybrid\Tools\HigherOrderCollectionProxy $avg
  * @property-read \Hybrid\Tools\HigherOrderCollectionProxy $contains
@@ -35,6 +36,7 @@ use function Hybrid\Tools\value;
  * @property-read \Hybrid\Tools\HigherOrderCollectionProxy $max
  * @property-read \Hybrid\Tools\HigherOrderCollectionProxy $min
  * @property-read \Hybrid\Tools\HigherOrderCollectionProxy $partition
+ * @property-read \Hybrid\Tools\HigherOrderCollectionProxy $percentage
  * @property-read \Hybrid\Tools\HigherOrderCollectionProxy $reject
  * @property-read \Hybrid\Tools\HigherOrderCollectionProxy $skipUntil
  * @property-read \Hybrid\Tools\HigherOrderCollectionProxy $skipWhile
@@ -81,6 +83,7 @@ trait EnumeratesValues {
         'max',
         'min',
         'partition',
+        'percentage',
         'reject',
         'skipUntil',
         'skipWhile',
@@ -99,7 +102,7 @@ trait EnumeratesValues {
     /**
      * Create a new collection instance if the value isn't one already.
      *
-     * @param  \Hybrid\Contracts\Arrayable<TMakeKey, TMakeValue>|iterable<TMakeKey, TMakeValue>|null $items
+     * @param \Hybrid\Contracts\Arrayable<TMakeKey, TMakeValue>|iterable<TMakeKey, TMakeValue>|null $items
      * @return static<TMakeKey, TMakeValue>
      *
      * @template TMakeKey of array-key
@@ -112,7 +115,7 @@ trait EnumeratesValues {
     /**
      * Wrap the given value in a collection if applicable.
      *
-     * @param  iterable<array-key, TWrapValue>|TWrapValue $value
+     * @param iterable<array-key, TWrapValue>|TWrapValue $value
      * @return static<array-key, TWrapValue>
      *
      * @template TWrapValue
@@ -126,7 +129,7 @@ trait EnumeratesValues {
     /**
      * Get the underlying items from the given collection if applicable.
      *
-     * @param  array<TUnwrapKey, TUnwrapValue>|static<TUnwrapKey, TUnwrapValue> $value
+     * @param array<TUnwrapKey, TUnwrapValue>|static<TUnwrapKey, TUnwrapValue> $value
      * @return array<TUnwrapKey, TUnwrapValue>
      *
      * @template TUnwrapKey of array-key
@@ -148,26 +151,47 @@ trait EnumeratesValues {
     /**
      * Create a new collection by invoking the callback a given amount of times.
      *
-     * @param  int                               $number
-     * @param  (callable(int): TTimesValue)|null $callback
+     * @param int                               $number
+     * @param (callable(int): TTimesValue)|null $callback
      * @return static<int, TTimesValue>
      *
      * @template TTimesValue
      */
     public static function times( $number, ?callable $callback = null ) {
-        if ( $number < 1 ) {
+        if ( 1 > $number ) {
             return new static();
         }
 
         return static::range( 1, $number )
-            ->unless( $callback === null )
+            ->unless( null == $callback )
             ->map( $callback );
+    }
+
+    /**
+     * Get the average value of a given key.
+     *
+     * @param (callable(TValue): float|int)|string|null $callback
+     * @return float|int|null
+     */
+    public function avg( $callback = null ) {
+        $callback = $this->valueRetriever( $callback );
+
+        $reduced = $this->reduce( static function ( &$reduce, $value ) use ( $callback ) {
+            if ( ! is_null( $resolved = $callback( $value ) ) ) {
+                $reduce[0] += $resolved;
+                $reduce[1]++;
+            }
+
+            return $reduce;
+        }, [ 0, 0 ] );
+
+        return $reduced[1] ? $reduced[0] / $reduced[1] : null;
     }
 
     /**
      * Alias for the "avg" method.
      *
-     * @param  (callable(\Hybrid\Tools\Traits\TValue): float|int)|string|null $callback
+     * @param (callable(TValue): float|int)|string|null $callback
      * @return float|int|null
      */
     public function average( $callback = null ) {
@@ -177,9 +201,9 @@ trait EnumeratesValues {
     /**
      * Alias for the "contains" method.
      *
-     * @param  (callable(\Hybrid\Tools\Traits\TValue, TKey): bool)|\Hybrid\Tools\Traits\TValue|string $key
-     * @param  mixed                                                                                  $operator
-     * @param  mixed                                                                                  $value
+     * @param (callable(TValue, TKey): bool)|TValue|string $key
+     * @param mixed                                        $operator
+     * @param mixed                                        $value
      * @return bool
      */
     public function some( $key, $operator = null, $value = null ) {
@@ -187,53 +211,23 @@ trait EnumeratesValues {
     }
 
     /**
-     * Determine if an item exists, using strict comparison.
+     * Dump the given arguments and terminate execution.
      *
-     * @param  (callable(\Hybrid\Tools\Traits\TValue): bool)|\Hybrid\Tools\Traits\TValue|array-key $key
-     * @param  \Hybrid\Tools\Traits\TValue|null                                                    $value
-     * @return bool
-     */
-    public function containsStrict( $key, $value = null ) {
-        if ( func_num_args() === 2 ) {
-            return $this->contains( static fn( $item ) => data_get( $item, $key ) === $value );
-        }
-
-        if ( $this->useAsCallable( $key ) ) {
-            return ! is_null( $this->first( $key ) );
-        }
-
-        foreach ( $this as $item ) {
-            if ( $item === $key ) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Dump the items and end the script.
-     *
-     * @param  mixed ...$args
-     * @return \never
+     * @param mixed ...$args
+     * @return never
      */
     public function dd( ...$args ) {
-        $this->dump( ...$args );
-
-        exit( 1 );
+        dd( $this->all(), ...$args );
     }
 
     /**
      * Dump the items.
      *
+     * @param mixed ...$args
      * @return $this
      */
-    public function dump() {
-        ( new Collection( func_get_args() ) )
-            ->push( $this->all() )
-            ->each( static function ( $item ) {
-                VarDumper::dump( $item );
-            });
+    public function dump( ...$args ) {
+        dump( $this->all(), ...$args );
 
         return $this;
     }
@@ -241,7 +235,7 @@ trait EnumeratesValues {
     /**
      * Execute a callback over each item.
      *
-     * @param  callable(\Hybrid\Tools\Traits\TValue, TKey): mixed $callback
+     * @param callable(TValue, TKey): mixed $callback
      * @return $this
      */
     public function each( callable $callback ) {
@@ -265,15 +259,15 @@ trait EnumeratesValues {
             $chunk[] = $key;
 
             return $callback( ...$chunk );
-        });
+        } );
     }
 
     /**
      * Determine if all items pass the given truth test.
      *
-     * @param  (callable(\Hybrid\Tools\Traits\TValue, TKey): bool)|\Hybrid\Tools\Traits\TValue|string $key
-     * @param  mixed                                                                                  $operator
-     * @param  mixed                                                                                  $value
+     * @param (callable(TValue, TKey): bool)|TValue|string $key
+     * @param mixed                                        $operator
+     * @param mixed                                        $value
      * @return bool
      */
     public function every( $key, $operator = null, $value = null ) {
@@ -295,10 +289,10 @@ trait EnumeratesValues {
     /**
      * Get the first item by the given key value pair.
      *
-     * @param  callable|string $key
-     * @param  mixed           $operator
-     * @param  mixed           $value
-     * @return \Hybrid\Tools\Traits\TValue|null
+     * @param callable|string $key
+     * @param mixed           $operator
+     * @param mixed           $value
+     * @return TValue|null
      */
     public function firstWhere( $key, $operator = null, $value = null ) {
         return $this->first( $this->operatorForWhere( ...func_get_args() ) );
@@ -307,9 +301,9 @@ trait EnumeratesValues {
     /**
      * Get a single key's value from the first matching item in the collection.
      *
-     * @param  string                                    $key
-     * @param  TValueDefault|(\Closure(): TValueDefault) $default
-     * @return \Hybrid\Tools\Traits\TValue|TValueDefault
+     * @param string                                    $key
+     * @param TValueDefault|(\Closure(): TValueDefault) $default
+     * @return TValue|TValueDefault
      *
      * @template TValueDefault
      */
@@ -324,28 +318,38 @@ trait EnumeratesValues {
     /**
      * Ensure that every item in the collection is of the expected type.
      *
-     * @param  class-string<TEnsureOfType> $type
+     * @param class-string<TEnsureOfType>|array<array-key, class-string<TEnsureOfType>> $type
      * @return static<TKey, TEnsureOfType>
      * @throws \UnexpectedValueException
      *
      * @template TEnsureOfType
      */
     public function ensure( $type ) {
-        return $this->each(static function ( $item ) use ( $type ) {
+        $allowedTypes = is_array( $type ) ? $type : [ $type ];
+
+        return $this->each( static function ( $item, $index ) use ( $allowedTypes ) {
             $itemType = get_debug_type( $item );
 
-            if ( $itemType !== $type && ! $item instanceof $type ) {
-                throw new \UnexpectedValueException(
-                    sprintf( "Collection should only include '%s' items, but '%s' found.", $type, $itemType )
-                );
+            foreach ( $allowedTypes as $allowedType ) {
+                if ( $itemType === $allowedType || $item instanceof $allowedType ) {
+                    return true;
+                }
             }
-        });
+
+            throw new \UnexpectedValueException(
+                sprintf( "Collection should only include [%s] items, but '%s' found at position %d.", implode( ', ', $allowedTypes ), $itemType, $index )
+            );
+        } );
     }
 
     /**
      * Determine if the collection is not empty.
      *
      * @return bool
+     *
+     * @phpstan-assert-if-true TValue $this->first()
+     *
+     * @phpstan-assert-if-false null $this->first()
      */
     public function isNotEmpty() {
         return ! $this->isEmpty();
@@ -354,7 +358,7 @@ trait EnumeratesValues {
     /**
      * Run a map over each nested chunk of items.
      *
-     * @param  callable(mixed): TMapSpreadValue $callback
+     * @param callable(mixed...): TMapSpreadValue $callback
      * @return static<TKey, TMapSpreadValue>
      *
      * @template TMapSpreadValue
@@ -364,7 +368,7 @@ trait EnumeratesValues {
             $chunk[] = $key;
 
             return $callback( ...$chunk );
-        });
+        } );
     }
 
     /**
@@ -372,7 +376,7 @@ trait EnumeratesValues {
      *
      * The callback should return an associative array with a single key/value pair.
      *
-     * @param  callable(\Hybrid\Tools\Traits\TValue, TKey): array<TMapToGroupsKey, TMapToGroupsValue> $callback
+     * @param callable(TValue, TKey): array<TMapToGroupsKey, TMapToGroupsValue> $callback
      * @return static<TMapToGroupsKey, static<int, TMapToGroupsValue>>
      *
      * @template TMapToGroupsKey of array-key
@@ -387,7 +391,7 @@ trait EnumeratesValues {
     /**
      * Map a collection and flatten the result by a single level.
      *
-     * @param  callable(\Hybrid\Tools\Traits\TValue, TKey): (\Hybrid\Tools\Collection<TFlatMapKey, TFlatMapValue>|array<TFlatMapKey, TFlatMapValue>) $callback
+     * @param callable(TValue, TKey): (\Hybrid\Tools\Collection<TFlatMapKey, TFlatMapValue>|array<TFlatMapKey, TFlatMapValue>) $callback
      * @return static<TFlatMapKey, TFlatMapValue>
      *
      * @template TFlatMapKey of array-key
@@ -400,19 +404,23 @@ trait EnumeratesValues {
     /**
      * Map the values into a new class.
      *
-     * @param  class-string<TMapIntoValue> $class
+     * @param class-string<TMapIntoValue> $class
      * @return static<TKey, TMapIntoValue>
      *
      * @template TMapIntoValue
      */
     public function mapInto( $class ) {
+        if ( is_subclass_of( $class, BackedEnum::class ) ) {
+            return $this->map( static fn( $value, $key ) => $class::from( $value ) );
+        }
+
         return $this->map( static fn( $value, $key ) => new $class( $value, $key ) );
     }
 
     /**
      * Get the min value of a given key.
      *
-     * @param  (callable(\Hybrid\Tools\Traits\TValue):mixed)|string|null $callback
+     * @param (callable(TValue):mixed)|string|null $callback
      * @return mixed
      */
     public function min( $callback = null ) {
@@ -426,24 +434,24 @@ trait EnumeratesValues {
     /**
      * Get the max value of a given key.
      *
-     * @param  (callable(\Hybrid\Tools\Traits\TValue):mixed)|string|null $callback
+     * @param (callable(TValue):mixed)|string|null $callback
      * @return mixed
      */
     public function max( $callback = null ) {
         $callback = $this->valueRetriever( $callback );
 
-        return $this->filter( static fn( $value ) => ! is_null( $value ) )->reduce(static function ( $result, $item ) use ( $callback ) {
+        return $this->filter( static fn( $value ) => ! is_null( $value ) )->reduce( static function ( $result, $item ) use ( $callback ) {
             $value = $callback( $item );
 
             return is_null( $result ) || $value > $result ? $value : $result;
-        });
+        } );
     }
 
     /**
      * "Paginate" the collection by slicing it into a smaller collection.
      *
-     * @param  int $page
-     * @param  int $perPage
+     * @param int $page
+     * @param int $perPage
      * @return static
      */
     public function forPage( $page, $perPage ) {
@@ -455,10 +463,10 @@ trait EnumeratesValues {
     /**
      * Partition the collection into two arrays using the given callback or key.
      *
-     * @param  (callable(\Hybrid\Tools\Traits\TValue, TKey): bool)|\Hybrid\Tools\Traits\TValue|string $key
-     * @param  \Hybrid\Tools\Traits\TValue|string|null                                                $operator
-     * @param  \Hybrid\Tools\Traits\TValue|null                                                       $value
-     * @return static<int<0, 1>, static<TKey, \Hybrid\Tools\Traits\TValue>>
+     * @param (callable(TValue, TKey): bool)|TValue|string $key
+     * @param TValue|string|null                           $operator
+     * @param TValue|null                                  $value
+     * @return static<int<0, 1>, static<TKey, TValue>>
      */
     public function partition( $key, $operator = null, $value = null ) {
         $passed = [];
@@ -482,7 +490,8 @@ trait EnumeratesValues {
     /**
      * Calculate the percentage of items that pass a given truth test.
      *
-     * @param  (callable(\Hybrid\Tools\Traits\TValue, TKey): bool) $callback
+     * @param (callable(TValue, TKey): bool) $callback
+     * @param int                            $precision
      * @return float|null
      */
     public function percentage( callable $callback, int $precision = 2 ) {
@@ -499,7 +508,7 @@ trait EnumeratesValues {
     /**
      * Get the sum of the given values.
      *
-     * @param  (callable(\Hybrid\Tools\Traits\TValue): mixed)|string|null $callback
+     * @param (callable(TValue): mixed)|string|null $callback
      * @return mixed
      */
     public function sum( $callback = null ) {
@@ -513,8 +522,8 @@ trait EnumeratesValues {
     /**
      * Apply the callback if the collection is empty.
      *
-     * @param  (callable( $this): TWhenEmptyReturnType)  $callback
-     * @param  (callable( $this): TWhenEmptyReturnType)|null  $default
+     * @param (callable( $this): TWhenEmptyReturnType) $callback
+     * @param (callable( $this): TWhenEmptyReturnType)|null $default
      * @return $this|TWhenEmptyReturnType
      *
      * @template TWhenEmptyReturnType
@@ -526,8 +535,8 @@ trait EnumeratesValues {
     /**
      * Apply the callback if the collection is not empty.
      *
-     * @param  callable(  $this): TWhenNotEmptyReturnType  $callback
-     * @param  (callable( $this): TWhenNotEmptyReturnType)|null  $default
+     * @param callable(  $this): TWhenNotEmptyReturnType $callback
+     * @param (callable( $this): TWhenNotEmptyReturnType)|null $default
      * @return $this|TWhenNotEmptyReturnType
      *
      * @template TWhenNotEmptyReturnType
@@ -539,8 +548,8 @@ trait EnumeratesValues {
     /**
      * Apply the callback unless the collection is empty.
      *
-     * @param  callable(  $this): TUnlessEmptyReturnType  $callback
-     * @param  (callable( $this): TUnlessEmptyReturnType)|null  $default
+     * @param callable(  $this): TUnlessEmptyReturnType $callback
+     * @param (callable( $this): TUnlessEmptyReturnType)|null $default
      * @return $this|TUnlessEmptyReturnType
      *
      * @template TUnlessEmptyReturnType
@@ -552,8 +561,8 @@ trait EnumeratesValues {
     /**
      * Apply the callback unless the collection is not empty.
      *
-     * @param  callable(  $this): TUnlessNotEmptyReturnType  $callback
-     * @param  (callable( $this): TUnlessNotEmptyReturnType)|null  $default
+     * @param callable(  $this): TUnlessNotEmptyReturnType $callback
+     * @param (callable( $this): TUnlessNotEmptyReturnType)|null $default
      * @return $this|TUnlessNotEmptyReturnType
      *
      * @template TUnlessNotEmptyReturnType
@@ -565,9 +574,9 @@ trait EnumeratesValues {
     /**
      * Filter items by the given key value pair.
      *
-     * @param  callable|string $key
-     * @param  mixed           $operator
-     * @param  mixed           $value
+     * @param callable|string $key
+     * @param mixed           $operator
+     * @param mixed           $value
      * @return static
      */
     public function where( $key, $operator = null, $value = null ) {
@@ -577,7 +586,7 @@ trait EnumeratesValues {
     /**
      * Filter items where the value for the given key is null.
      *
-     * @param  string|null $key
+     * @param string|null $key
      * @return static
      */
     public function whereNull( $key = null ) {
@@ -587,7 +596,7 @@ trait EnumeratesValues {
     /**
      * Filter items where the value for the given key is not null.
      *
-     * @param  string|null $key
+     * @param string|null $key
      * @return static
      */
     public function whereNotNull( $key = null ) {
@@ -597,8 +606,8 @@ trait EnumeratesValues {
     /**
      * Filter items by the given key value pair using strict comparison.
      *
-     * @param  string $key
-     * @param  mixed  $value
+     * @param string $key
+     * @param mixed  $value
      * @return static
      */
     public function whereStrict( $key, $value ) {
@@ -608,9 +617,9 @@ trait EnumeratesValues {
     /**
      * Filter items by the given key value pair.
      *
-     * @param  string                               $key
-     * @param  \Hybrid\Contracts\Arrayable|iterable $values
-     * @param  bool                                 $strict
+     * @param string                               $key
+     * @param \Hybrid\Contracts\Arrayable|iterable $values
+     * @param bool                                 $strict
      * @return static
      */
     public function whereIn( $key, $values, $strict = false ) {
@@ -622,8 +631,8 @@ trait EnumeratesValues {
     /**
      * Filter items by the given key value pair using strict comparison.
      *
-     * @param  string                               $key
-     * @param  \Hybrid\Contracts\Arrayable|iterable $values
+     * @param string                               $key
+     * @param \Hybrid\Contracts\Arrayable|iterable $values
      * @return static
      */
     public function whereInStrict( $key, $values ) {
@@ -633,8 +642,8 @@ trait EnumeratesValues {
     /**
      * Filter items such that the value of the given key is between the given values.
      *
-     * @param  string                               $key
-     * @param  \Hybrid\Contracts\Arrayable|iterable $values
+     * @param string                               $key
+     * @param \Hybrid\Contracts\Arrayable|iterable $values
      * @return static
      */
     public function whereBetween( $key, $values ) {
@@ -644,8 +653,8 @@ trait EnumeratesValues {
     /**
      * Filter items such that the value of the given key is not between the given values.
      *
-     * @param  string                               $key
-     * @param  \Hybrid\Contracts\Arrayable|iterable $values
+     * @param string                               $key
+     * @param \Hybrid\Contracts\Arrayable|iterable $values
      * @return static
      */
     public function whereNotBetween( $key, $values ) {
@@ -657,9 +666,9 @@ trait EnumeratesValues {
     /**
      * Filter items by the given key value pair.
      *
-     * @param  string                               $key
-     * @param  \Hybrid\Contracts\Arrayable|iterable $values
-     * @param  bool                                 $strict
+     * @param string                               $key
+     * @param \Hybrid\Contracts\Arrayable|iterable $values
+     * @param bool                                 $strict
      * @return static
      */
     public function whereNotIn( $key, $values, $strict = false ) {
@@ -671,8 +680,8 @@ trait EnumeratesValues {
     /**
      * Filter items by the given key value pair using strict comparison.
      *
-     * @param  string                               $key
-     * @param  \Hybrid\Contracts\Arrayable|iterable $values
+     * @param string                               $key
+     * @param \Hybrid\Contracts\Arrayable|iterable $values
      * @return static
      */
     public function whereNotInStrict( $key, $values ) {
@@ -682,7 +691,7 @@ trait EnumeratesValues {
     /**
      * Filter the items, removing any items that don't match the given type(s).
      *
-     * @param  class-string<TWhereInstanceOf>|array<array-key, class-string<TWhereInstanceOf>> $type
+     * @param class-string<TWhereInstanceOf>|array<array-key, class-string<TWhereInstanceOf>> $type
      * @return static<TKey, TWhereInstanceOf>
      *
      * @template TWhereInstanceOf
@@ -700,13 +709,13 @@ trait EnumeratesValues {
             }
 
             return $value instanceof $type;
-        });
+        } );
     }
 
     /**
      * Pass the collection to the given callback and return the result.
      *
-     * @param  callable( $this): TPipeReturnType  $callback
+     * @param callable( $this): TPipeReturnType $callback
      * @return TPipeReturnType
      *
      * @template TPipeReturnType
@@ -718,7 +727,7 @@ trait EnumeratesValues {
     /**
      * Pass the collection into a new class.
      *
-     * @param  class-string<TPipeIntoValue> $class
+     * @param class-string<TPipeIntoValue> $class
      * @return TPipeIntoValue
      *
      * @template TPipeIntoValue
@@ -730,7 +739,7 @@ trait EnumeratesValues {
     /**
      * Pass the collection through a series of callable pipes and return the result.
      *
-     * @param  array<callable> $callbacks
+     * @param array<callable> $callbacks
      * @return mixed
      */
     public function pipeThrough( $callbacks ) {
@@ -743,8 +752,8 @@ trait EnumeratesValues {
     /**
      * Reduce the collection to a single value.
      *
-     * @param  callable(TReduceInitial|TReduceReturnType, \Hybrid\Tools\Traits\TValue, TKey): TReduceReturnType $callback
-     * @param  TReduceInitial                                                                                   $initial
+     * @param callable(TReduceInitial|TReduceReturnType, TValue, TKey): TReduceReturnType $callback
+     * @param TReduceInitial                                                              $initial
      * @return TReduceReturnType
      *
      * @template TReduceInitial
@@ -763,7 +772,8 @@ trait EnumeratesValues {
     /**
      * Reduce the collection to multiple aggregate values.
      *
-     * @param  mixed ...$initial
+     * @param callable $callback
+     * @param mixed    ...$initial
      * @return array
      * @throws \UnexpectedValueException
      */
@@ -774,10 +784,10 @@ trait EnumeratesValues {
             $result = call_user_func_array( $callback, array_merge( $result, [ $value, $key ] ) );
 
             if ( ! is_array( $result ) ) {
-                throw new \UnexpectedValueException(sprintf(
+                throw new \UnexpectedValueException( sprintf(
                     "%s::reduceSpread expects reducer to return an array, but got a '%s' instead.",
                     class_basename( static::class ), gettype( $result )
-                ));
+                ) );
             }
         }
 
@@ -787,8 +797,8 @@ trait EnumeratesValues {
     /**
      * Reduce an associative collection to a single value.
      *
-     * @param  callable(TReduceWithKeysInitial|TReduceWithKeysReturnType, \Hybrid\Tools\Traits\TValue, TKey): TReduceWithKeysReturnType $callback
-     * @param  TReduceWithKeysInitial                                                                                                   $initial
+     * @param callable(TReduceWithKeysInitial|TReduceWithKeysReturnType, TValue, TKey): TReduceWithKeysReturnType $callback
+     * @param TReduceWithKeysInitial                                                                              $initial
      * @return TReduceWithKeysReturnType
      *
      * @template TReduceWithKeysInitial
@@ -801,21 +811,21 @@ trait EnumeratesValues {
     /**
      * Create a collection of all elements that do not pass a given truth test.
      *
-     * @param  (callable(\Hybrid\Tools\Traits\TValue, TKey): bool)|bool|\Hybrid\Tools\Traits\TValue $callback
+     * @param (callable(TValue, TKey): bool)|bool|TValue $callback
      * @return static
      */
     public function reject( $callback = true ) {
         $useAsCallable = $this->useAsCallable( $callback );
 
-        return $this->filter(static fn( $value, $key ) => $useAsCallable
+        return $this->filter( static fn( $value, $key ) => $useAsCallable
                 ? ! $callback( $value, $key )
-        : $value !== $callback);
+        : $value != $callback );
     }
 
     /**
      * Pass the collection to the given callback and then return it.
      *
-     * @param  callable( $this): mixed  $callback
+     * @param callable( $this): mixed $callback
      * @return $this
      */
     public function tap( callable $callback ) {
@@ -827,8 +837,8 @@ trait EnumeratesValues {
     /**
      * Return only unique items from the collection array.
      *
-     * @param  (callable(\Hybrid\Tools\Traits\TValue, TKey): mixed)|string|null $key
-     * @param  bool                                                             $strict
+     * @param (callable(TValue, TKey): mixed)|string|null $key
+     * @param bool                                        $strict
      * @return static
      */
     public function unique( $key = null, $strict = false ) {
@@ -842,13 +852,13 @@ trait EnumeratesValues {
             }
 
             $exists[] = $id;
-        });
+        } );
     }
 
     /**
      * Return only unique items from the collection array using strict comparison.
      *
-     * @param  (callable(\Hybrid\Tools\Traits\TValue, TKey): mixed)|string|null $key
+     * @param (callable(TValue, TKey): mixed)|string|null $key
      * @return static
      */
     public function uniqueStrict( $key = null ) {
@@ -858,7 +868,7 @@ trait EnumeratesValues {
     /**
      * Collect the values into a collection.
      *
-     * @return \Hybrid\Tools\Collection<TKey, \Hybrid\Tools\Traits\TValue>
+     * @return \Hybrid\Tools\Collection<TKey, TValue>
      */
     public function collect() {
         return new Collection( $this->all() );
@@ -879,7 +889,7 @@ trait EnumeratesValues {
      * @return array<TKey, mixed>
      */
     public function jsonSerialize(): array {
-        return array_map(static function ( $value ) {
+        return array_map( static function ( $value ) {
             if ( $value instanceof JsonSerializable ) {
                 return $value->jsonSerialize();
             }
@@ -893,13 +903,13 @@ trait EnumeratesValues {
             }
 
             return $value;
-        }, $this->all());
+        }, $this->all() );
     }
 
     /**
      * Get the collection of items as JSON.
      *
-     * @param  int $options
+     * @param int $options
      * @return string
      */
     public function toJson( $options = 0 ) {
@@ -909,7 +919,7 @@ trait EnumeratesValues {
     /**
      * Get a CachingIterator instance.
      *
-     * @param  int $flags
+     * @param int $flags
      * @return \CachingIterator
      */
     public function getCachingIterator( $flags = CachingIterator::CALL_TOSTRING ) {
@@ -930,7 +940,7 @@ trait EnumeratesValues {
     /**
      * Indicate that the model's string representation should be escaped when __toString is invoked.
      *
-     * @param  bool $escape
+     * @param bool $escape
      * @return $this
      */
     public function escapeWhenCastingToString( $escape = true ) {
@@ -942,7 +952,7 @@ trait EnumeratesValues {
     /**
      * Add a method to the list of proxied methods.
      *
-     * @param  string $method
+     * @param string $method
      * @return void
      */
     public static function proxy( $method ) {
@@ -952,7 +962,7 @@ trait EnumeratesValues {
     /**
      * Dynamically access collection proxies.
      *
-     * @param  string $key
+     * @param string $key
      * @return mixed
      * @throws \Exception
      */
@@ -967,8 +977,8 @@ trait EnumeratesValues {
     /**
      * Results array of items from Collection or Arrayable.
      *
-     * @param  mixed $items
-     * @return array<TKey, \Hybrid\Tools\Traits\TValue>
+     * @param mixed $items
+     * @return array<TKey, TValue>
      */
     protected function getArrayableItems( $items ) {
         if ( is_array( $items ) ) {
@@ -976,6 +986,7 @@ trait EnumeratesValues {
         }
 
         return match ( true ) {
+            $items instanceof WeakMap => throw new \InvalidArgumentException( 'Collections can not be created using instances of WeakMap.' ),
             $items instanceof Enumerable => $items->all(),
             $items instanceof Arrayable => $items->toArray(),
             $items instanceof Traversable => iterator_to_array( $items ),
@@ -989,9 +1000,9 @@ trait EnumeratesValues {
     /**
      * Get an operator checker callback.
      *
-     * @param  callable|string $key
-     * @param  string|null     $operator
-     * @param  mixed           $value
+     * @param callable|string $key
+     * @param string|null     $operator
+     * @param mixed           $value
      * @return \Closure
      */
     protected function operatorForWhere( $key, $operator = null, $value = null ) {
@@ -1016,7 +1027,7 @@ trait EnumeratesValues {
 
             $strings = array_filter( [ $retrieved, $value ], static fn( $value ) => is_string( $value ) || ( is_object( $value ) && method_exists( $value, '__toString' ) ) );
 
-            if ( count( $strings ) < 2 && count( array_filter( [ $retrieved, $value ], 'is_object' ) ) === 1 ) {
+            if ( count( $strings ) < 2 && count( array_filter( [ $retrieved, $value ], 'is_object' ) ) == 1 ) {
                 return in_array( $operator, [ '!=', '<>', '!==' ] );
             }
 
@@ -1024,10 +1035,10 @@ trait EnumeratesValues {
                 default:
                 case '=':
                 case '==':
-                    return $retrieved === $value;
+                    return $retrieved == $value;
                 case '!=':
                 case '<>':
-                    return $retrieved !== $value;
+                    return $retrieved != $value;
                 case '<':
                     return $retrieved < $value;
                 case '>':
@@ -1049,7 +1060,7 @@ trait EnumeratesValues {
     /**
      * Determine if the given value is callable, but not a string.
      *
-     * @param  mixed $value
+     * @param mixed $value
      * @return bool
      */
     protected function useAsCallable( $value ) {
@@ -1059,7 +1070,7 @@ trait EnumeratesValues {
     /**
      * Get a value retrieving callback.
      *
-     * @param  callable|string|null $value
+     * @param callable|string|null $value
      * @return callable
      */
     protected function valueRetriever( $value ) {
@@ -1073,7 +1084,7 @@ trait EnumeratesValues {
     /**
      * Make a function to check an item's equality.
      *
-     * @param  mixed $value
+     * @param mixed $value
      * @return \Closure(mixed): bool
      */
     protected function equality( $value ) {
@@ -1083,6 +1094,7 @@ trait EnumeratesValues {
     /**
      * Make a function using another function, by negating its result.
      *
+     * @param \Closure $callback
      * @return \Closure
      */
     protected function negate( Closure $callback ) {
@@ -1092,7 +1104,7 @@ trait EnumeratesValues {
     /**
      * Make a function that returns what's passed to it.
      *
-     * @return \Closure(\Hybrid\Tools\Traits\TValue): \Hybrid\Tools\Traits\TValue
+     * @return \Closure(TValue): TValue
      */
     protected function identity() {
         return static fn( $value ) => $value;

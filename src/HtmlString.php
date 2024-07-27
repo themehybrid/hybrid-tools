@@ -3,8 +3,9 @@
 namespace Hybrid\Tools;
 
 use Hybrid\Contracts\Htmlable;
+use Stringable;
 
-class HtmlString implements Htmlable {
+class HtmlString implements Htmlable, Stringable {
 
     /**
      * The HTML string.
@@ -16,7 +17,7 @@ class HtmlString implements Htmlable {
     /**
      * Create a new HTML string instance.
      *
-     * @param  string $html
+     * @param string $html
      * @return void
      */
     public function __construct( $html = '' ) {
@@ -38,7 +39,7 @@ class HtmlString implements Htmlable {
      * @return bool
      */
     public function isEmpty() {
-        return $this->html === '';
+        return '' === $this->html;
     }
 
     /**

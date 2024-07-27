@@ -13,8 +13,8 @@ class Reflector {
     /**
      * This is a PHP 7.4 compatible implementation of is_callable.
      *
-     * @param  mixed $var
-     * @param  bool  $syntaxOnly
+     * @param mixed $var
+     * @param bool  $syntaxOnly
      * @return bool
      */
     public static function isCallable( $var, $syntaxOnly = false ) {
@@ -56,7 +56,7 @@ class Reflector {
     /**
      * Get the class name of the given parameter's type, if possible.
      *
-     * @param  \ReflectionParameter $parameter
+     * @param \ReflectionParameter $parameter
      * @return string|null
      */
     public static function getParameterClassName( $parameter ) {
@@ -72,7 +72,7 @@ class Reflector {
     /**
      * Get the class names of the given parameter's type, including union types.
      *
-     * @param  \ReflectionParameter $parameter
+     * @param \ReflectionParameter $parameter
      * @return array
      */
     public static function getParameterClassNames( $parameter ) {
@@ -98,19 +98,19 @@ class Reflector {
     /**
      * Get the given type's class name.
      *
-     * @param  \ReflectionParameter $parameter
-     * @param  \ReflectionNamedType $type
+     * @param \ReflectionParameter $parameter
+     * @param \ReflectionNamedType $type
      * @return string
      */
     protected static function getTypeName( $parameter, $type ) {
         $name = $type->getName();
 
         if ( ! is_null( $class = $parameter->getDeclaringClass() ) ) {
-            if ( $name === 'self' ) {
+            if ( 'self' === $name ) {
                 return $class->getName();
             }
 
-            if ( $name === 'parent' && $parent = $class->getParentClass() ) {
+            if ( 'parent' === $name && $parent = $class->getParentClass() ) {
                 return $parent->getName();
             }
         }
@@ -121,8 +121,8 @@ class Reflector {
     /**
      * Determine if the parameter's type is a subclass of the given type.
      *
-     * @param  \ReflectionParameter $parameter
-     * @param  string               $className
+     * @param \ReflectionParameter $parameter
+     * @param string               $className
      * @return bool
      */
     public static function isParameterSubclassOf( $parameter, $className ) {
@@ -136,7 +136,7 @@ class Reflector {
     /**
      * Determine if the parameter's type is a Backed Enum with a string backing type.
      *
-     * @param  \ReflectionParameter $parameter
+     * @param \ReflectionParameter $parameter
      * @return bool
      */
     public static function isParameterBackedEnumWithStringBackingType( $parameter ) {
@@ -150,7 +150,8 @@ class Reflector {
             return false;
         }
 
-        if ( enum_exists( $backedEnumClass ) ) {
+        // Check if PHP version is 8.1 or higher.
+        if ( PHP_VERSION_ID >= 80100 && enum_exists( $backedEnumClass ) ) {
             $reflectionBackedEnum = new ReflectionEnum( $backedEnumClass );
 
             return $reflectionBackedEnum->isBacked()

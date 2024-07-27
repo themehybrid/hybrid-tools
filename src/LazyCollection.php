@@ -29,7 +29,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * The source from which to generate items.
      *
-     * @var \Closure(): \Generator<TKey, TValue, mixed, void>|static|array<TKey, TValue>
+     * @var (\Closure(): \Generator<TKey, TValue, mixed, void>)|static|array<TKey, TValue>
      */
     public $source;
 
@@ -69,12 +69,12 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Create a collection with the given range.
      *
-     * @param  int $from
-     * @param  int $to
+     * @param int $from
+     * @param int $to
      * @return static<int, int>
      */
     public static function range( $from, $to ) {
-        return new static(static function () use ( $from, $to ) {
+        return new static( static function () use ( $from, $to ) {
             if ( $from <= $to ) {
                 for ( ; $from <= $to; $from++ ) {
                     yield $from;
@@ -84,7 +84,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
                     yield $from;
                 }
             }
-        });
+        } );
     }
 
     /**
@@ -121,7 +121,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
 
         $cache = [];
 
-        return new static(static function () use ( $iterator, &$iteratorIndex, &$cache ) {
+        return new static( static function () use ( $iterator, &$iteratorIndex, &$cache ) {
             for ( $index = 0; true; $index++ ) {
                 if ( array_key_exists( $index, $cache ) ) {
                     yield $cache[ $index ][0] => $cache[ $index ][1];
@@ -143,23 +143,13 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
 
                 yield $cache[ $index ][0] => $cache[ $index ][1];
             }
-        });
-    }
-
-    /**
-     * Get the average value of a given key.
-     *
-     * @param  (callable(TValue): float|int)|string|null $callback
-     * @return float|int|null
-     */
-    public function avg( $callback = null ) {
-        return $this->collect()->avg( $callback );
+        } );
     }
 
     /**
      * Get the median of a given key.
      *
-     * @param  string|array<array-key, string>|null $key
+     * @param string|array<array-key, string>|null $key
      * @return float|int|null
      */
     public function median( $key = null ) {
@@ -169,7 +159,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Get the mode of a given key.
      *
-     * @param  string|array<string>|null $key
+     * @param string|array<string>|null $key
      * @return array<int, float|int>|null
      */
     public function mode( $key = null ) {
@@ -182,7 +172,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
      * @return static<int, mixed>
      */
     public function collapse() {
-        return new static(function () {
+        return new static( function () {
             foreach ( $this as $values ) {
                 if ( is_array( $values ) || $values instanceof Enumerable ) {
                     foreach ( $values as $value ) {
@@ -190,15 +180,15 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
                     }
                 }
             }
-        });
+        } );
     }
 
     /**
      * Determine if an item exists in the enumerable.
      *
-     * @param  (callable(TValue, TKey): bool)|TValue|string $key
-     * @param  mixed                                        $operator
-     * @param  mixed                                        $value
+     * @param (callable(TValue, TKey): bool)|TValue|string $key
+     * @param mixed                                        $operator
+     * @param mixed                                        $value
      * @return bool
      */
     public function contains( $key, $operator = null, $value = null ) {
@@ -213,7 +203,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
             $needle = $key;
 
             foreach ( $this as $value ) {
-                if ( $value === $needle ) {
+                if ( $value == $needle ) {
                     return true;
                 }
             }
@@ -227,8 +217,8 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Determine if an item exists, using strict comparison.
      *
-     * @param  (callable(TValue): bool)|TValue|array-key $key
-     * @param  TValue|null                               $value
+     * @param (callable(TValue): bool)|TValue|array-key $key
+     * @param TValue|null                               $value
      * @return bool
      */
     public function containsStrict( $key, $value = null ) {
@@ -252,9 +242,9 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Determine if an item is not contained in the enumerable.
      *
-     * @param  mixed $key
-     * @param  mixed $operator
-     * @param  mixed $value
+     * @param mixed $key
+     * @param mixed $operator
+     * @param mixed $value
      * @return bool
      */
     public function doesntContain( $key, $operator = null, $value = null ) {
@@ -264,7 +254,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Cross join the given iterables, returning all possible permutations.
      *
-     * @param  \Hybrid\Contracts\Arrayable<TCrossJoinKey, TCrossJoinValue>|iterable<TCrossJoinKey, TCrossJoinValue> ...$arrays
+     * @param \Hybrid\Contracts\Arrayable<TCrossJoinKey, TCrossJoinValue>|iterable<TCrossJoinKey, TCrossJoinValue> ...$arrays
      * @return static<int, array<int, TValue|TCrossJoinValue>>
      *
      * @template TCrossJoinKey
@@ -285,7 +275,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
             ? $this->identity()
             : $this->valueRetriever( $countBy );
 
-        return new static(function () use ( $countBy ) {
+        return new static( function () use ( $countBy ) {
             $counts = [];
 
             foreach ( $this as $key => $value ) {
@@ -299,13 +289,13 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
             }
 
             yield from $counts;
-        });
+        } );
     }
 
     /**
      * Get the items that are not present in the given items.
      *
-     * @param  \Hybrid\Contracts\Arrayable<array-key, TValue>|iterable<array-key, TValue> $items
+     * @param \Hybrid\Contracts\Arrayable<array-key, TValue>|iterable<array-key, TValue> $items
      * @return static
      */
     public function diff( $items ) {
@@ -315,8 +305,8 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Get the items that are not present in the given items, using the callback.
      *
-     * @param  \Hybrid\Contracts\Arrayable<array-key, TValue>|iterable<array-key, TValue> $items
-     * @param  callable(TValue, TValue): int                                              $callback
+     * @param \Hybrid\Contracts\Arrayable<array-key, TValue>|iterable<array-key, TValue> $items
+     * @param callable(TValue, TValue): int                                              $callback
      * @return static
      */
     public function diffUsing( $items, callable $callback ) {
@@ -326,7 +316,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Get the items whose keys and values are not present in the given items.
      *
-     * @param  \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
+     * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
      * @return static
      */
     public function diffAssoc( $items ) {
@@ -336,8 +326,8 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Get the items whose keys and values are not present in the given items, using the callback.
      *
-     * @param  \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
-     * @param  callable(TKey, TKey): int                                        $callback
+     * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
+     * @param callable(TKey, TKey): int                                        $callback
      * @return static
      */
     public function diffAssocUsing( $items, callable $callback ) {
@@ -347,7 +337,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Get the items whose keys are not present in the given items.
      *
-     * @param  \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
+     * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
      * @return static
      */
     public function diffKeys( $items ) {
@@ -357,8 +347,8 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Get the items whose keys are not present in the given items, using the callback.
      *
-     * @param  \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
-     * @param  callable(TKey, TKey): int                                        $callback
+     * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
+     * @param callable(TKey, TKey): int                                        $callback
      * @return static
      */
     public function diffKeysUsing( $items, callable $callback ) {
@@ -368,8 +358,8 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Retrieve duplicate items.
      *
-     * @param  (callable(TValue): bool)|string|null $callback
-     * @param  bool                                 $strict
+     * @param (callable(TValue): bool)|string|null $callback
+     * @param bool                                 $strict
      * @return static
      */
     public function duplicates( $callback = null, $strict = false ) {
@@ -379,7 +369,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Retrieve duplicate items using strict comparison.
      *
-     * @param  (callable(TValue): bool)|string|null $callback
+     * @param (callable(TValue): bool)|string|null $callback
      * @return static
      */
     public function duplicatesStrict( $callback = null ) {
@@ -389,7 +379,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Get all items except for those with the specified keys.
      *
-     * @param  \Hybrid\Tools\Enumerable<array-key, TKey>|array<array-key, TKey> $keys
+     * @param \Hybrid\Tools\Enumerable<array-key, TKey>|array<array-key, TKey> $keys
      * @return static
      */
     public function except( $keys ) {
@@ -399,7 +389,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Run a filter over each of the items.
      *
-     * @param  (callable(TValue): bool)|null $callback
+     * @param (callable(TValue, TKey): bool)|null $callback
      * @return static
      */
     public function filter( ?callable $callback = null ) {
@@ -407,20 +397,20 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
             $callback = static fn( $value ) => (bool) $value;
         }
 
-        return new static(function () use ( $callback ) {
+        return new static( function () use ( $callback ) {
             foreach ( $this as $key => $value ) {
                 if ( $callback( $value, $key ) ) {
                     yield $key => $value;
                 }
             }
-        });
+        } );
     }
 
     /**
      * Get the first item from the enumerable passing the given truth test.
      *
-     * @param  (callable(TValue): bool)|null             $callback
-     * @param  TFirstDefault|(\Closure(): TFirstDefault) $default
+     * @param (callable(TValue): bool)|null             $callback
+     * @param TFirstDefault|(\Closure(): TFirstDefault) $default
      * @return TValue|TFirstDefault
      *
      * @template TFirstDefault
@@ -448,21 +438,21 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Get a flattened list of the items in the collection.
      *
-     * @param  int $depth
+     * @param int $depth
      * @return static<int, mixed>
      */
     public function flatten( $depth = INF ) {
-        $instance = new static(function () use ( $depth ) {
+        $instance = new static( function () use ( $depth ) {
             foreach ( $this as $item ) {
                 if ( ! is_array( $item ) && ! $item instanceof Enumerable ) {
                     yield $item;
-                } elseif ( $depth === 1 ) {
+                } elseif ( 1 === $depth ) {
                     yield from $item;
                 } else {
-                    yield from (new static( $item ))->flatten( $depth - 1 );
+                    yield from ( new static( $item ) )->flatten( $depth - 1 );
                 }
             }
-        });
+        } );
 
         return $instance->values();
     }
@@ -473,18 +463,18 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
      * @return static<TValue, TKey>
      */
     public function flip() {
-        return new static(function () {
+        return new static( function () {
             foreach ( $this as $key => $value ) {
                 yield $value => $key;
             }
-        });
+        } );
     }
 
     /**
      * Get an item by key.
      *
-     * @param  TKey|null                             $key
-     * @param  TGetDefault|(\Closure(): TGetDefault) $default
+     * @param TKey|null                             $key
+     * @param TGetDefault|(\Closure(): TGetDefault) $default
      * @return TValue|TGetDefault
      *
      * @template TGetDefault
@@ -495,7 +485,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
         }
 
         foreach ( $this as $outerKey => $outerValue ) {
-            if ( $outerKey === $key ) {
+            if ( $outerKey == $key ) {
                 return $outerValue;
             }
         }
@@ -506,8 +496,8 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Group an associative array by a field or using a callback.
      *
-     * @param  (callable(TValue, TKey): array-key)|array|string $groupBy
-     * @param  bool                                             $preserveKeys
+     * @param (callable(TValue, TKey): array-key)|array|string $groupBy
+     * @param bool                                             $preserveKeys
      * @return static<array-key, static<array-key, TValue>>
      */
     public function groupBy( $groupBy, $preserveKeys = false ) {
@@ -517,11 +507,11 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Key an associative array by a field or using a callback.
      *
-     * @param  (callable(TValue, TKey): array-key)|array|string $keyBy
+     * @param (callable(TValue, TKey): array-key)|array|string $keyBy
      * @return static<array-key, TValue>
      */
     public function keyBy( $keyBy ) {
-        return new static(function () use ( $keyBy ) {
+        return new static( function () use ( $keyBy ) {
             $keyBy = $this->valueRetriever( $keyBy );
 
             foreach ( $this as $key => $item ) {
@@ -533,13 +523,13 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
 
                 yield $resolvedKey => $item;
             }
-        });
+        } );
     }
 
     /**
      * Determine if an item exists in the collection by key.
      *
-     * @param  mixed $key
+     * @param mixed $key
      * @return bool
      */
     public function has( $key ) {
@@ -547,7 +537,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
         $count = count( $keys );
 
         foreach ( $this as $key => $value ) {
-            if ( array_key_exists( $key, $keys ) && --$count === 0 ) {
+            if ( array_key_exists( $key, $keys ) && 0 == --$count ) {
                 return true;
             }
         }
@@ -558,7 +548,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Determine if any of the keys exist in the collection.
      *
-     * @param  mixed $key
+     * @param mixed $key
      * @return bool
      */
     public function hasAny( $key ) {
@@ -576,8 +566,8 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Concatenate values of a given key as a string.
      *
-     * @param  callable|string $value
-     * @param  string|null     $glue
+     * @param callable|string $value
+     * @param string|null     $glue
      * @return string
      */
     public function implode( $value, $glue = null ) {
@@ -587,7 +577,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Intersect the collection with the given items.
      *
-     * @param  \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
+     * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
      * @return static
      */
     public function intersect( $items ) {
@@ -597,18 +587,18 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Intersect the collection with the given items, using the callback.
      *
-     * @param  \Hybrid\Contracts\Arrayable<array-key, TValue>|iterable<array-key, TValue> $items
-     * @param  callable(TValue, TValue): int                                              $callback
+     * @param \Hybrid\Contracts\Arrayable<array-key, TValue>|iterable<array-key, TValue> $items
+     * @param callable(TValue, TValue): int                                              $callback
      * @return static
      */
-    public function intersectUsing() {
+    public function intersectUsing( $items, callable $callback ) {
         return $this->passthru( 'intersectUsing', func_get_args() );
     }
 
     /**
      * Intersect the collection with the given items with additional index check.
      *
-     * @param  \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
+     * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
      * @return static
      */
     public function intersectAssoc( $items ) {
@@ -618,8 +608,8 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Intersect the collection with the given items with additional index check, using the callback.
      *
-     * @param  \Hybrid\Contracts\Arrayable<array-key, TValue>|iterable<array-key, TValue> $items
-     * @param  callable(TValue, TValue): int                                              $callback
+     * @param \Hybrid\Contracts\Arrayable<array-key, TValue>|iterable<array-key, TValue> $items
+     * @param callable(TValue, TValue): int                                              $callback
      * @return static
      */
     public function intersectAssocUsing( $items, callable $callback ) {
@@ -629,7 +619,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Intersect the collection with the given items by key.
      *
-     * @param  \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
+     * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
      * @return static
      */
     public function intersectByKeys( $items ) {
@@ -657,8 +647,8 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Join all items from the collection using a string. The final items can use a separate glue string.
      *
-     * @param  string $glue
-     * @param  string $finalGlue
+     * @param string $glue
+     * @param string $finalGlue
      * @return string
      */
     public function join( $glue, $finalGlue = '' ) {
@@ -671,18 +661,18 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
      * @return static<int, TKey>
      */
     public function keys() {
-        return new static(function () {
+        return new static( function () {
             foreach ( $this as $key => $value ) {
                 yield $key;
             }
-        });
+        } );
     }
 
     /**
      * Get the last item from the collection.
      *
-     * @param  (callable(TValue, TKey): bool)|null     $callback
-     * @param  TLastDefault|(\Closure(): TLastDefault) $default
+     * @param (callable(TValue, TKey): bool)|null     $callback
+     * @param TLastDefault|(\Closure(): TLastDefault) $default
      * @return TValue|TLastDefault
      *
      * @template TLastDefault
@@ -702,12 +692,12 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Get the values of a given key.
      *
-     * @param  string|array<array-key, string> $value
-     * @param  string|null                     $key
-     * @return static<int, mixed>
+     * @param string|array<array-key, string> $value
+     * @param string|null                     $key
+     * @return static<array-key, mixed>
      */
     public function pluck( $value, $key = null ) {
-        return new static(function () use ( $value, $key ) {
+        return new static( function () use ( $value, $key ) {
             [$value, $key] = $this->explodePluckParameters( $value, $key );
 
             foreach ( $this as $item ) {
@@ -725,23 +715,23 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
                     yield $itemKey => $itemValue;
                 }
             }
-        });
+        } );
     }
 
     /**
      * Run a map over each of the items.
      *
-     * @param  callable(TValue, TKey): TMapValue $callback
+     * @param callable(TValue, TKey): TMapValue $callback
      * @return static<TKey, TMapValue>
      *
      * @template TMapValue
      */
     public function map( callable $callback ) {
-        return new static(function () use ( $callback ) {
+        return new static( function () use ( $callback ) {
             foreach ( $this as $key => $value ) {
                 yield $key => $callback( $value, $key );
             }
-        });
+        } );
     }
 
     /**
@@ -749,7 +739,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
      *
      * The callback should return an associative array with a single key/value pair.
      *
-     * @param  callable(TValue, TKey): array<TMapToDictionaryKey, TMapToDictionaryValue> $callback
+     * @param callable(TValue, TKey): array<TMapToDictionaryKey, TMapToDictionaryValue> $callback
      * @return static<TMapToDictionaryKey, array<int, TMapToDictionaryValue>>
      *
      * @template TMapToDictionaryKey of array-key
@@ -764,24 +754,24 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
      *
      * The callback should return an associative array with a single key/value pair.
      *
-     * @param  callable(TValue, TKey): array<TMapWithKeysKey, TMapWithKeysValue> $callback
+     * @param callable(TValue, TKey): array<TMapWithKeysKey, TMapWithKeysValue> $callback
      * @return static<TMapWithKeysKey, TMapWithKeysValue>
      *
      * @template TMapWithKeysKey of array-key
      * @template TMapWithKeysValue
      */
     public function mapWithKeys( callable $callback ) {
-        return new static(function () use ( $callback ) {
+        return new static( function () use ( $callback ) {
             foreach ( $this as $key => $value ) {
                 yield from $callback( $value, $key );
             }
-        });
+        } );
     }
 
     /**
      * Merge the collection with the given items.
      *
-     * @param  \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
+     * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
      * @return static
      */
     public function merge( $items ) {
@@ -791,7 +781,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Recursively merge the collection with the given items.
      *
-     * @param  \Hybrid\Contracts\Arrayable<TKey, TMergeRecursiveValue>|iterable<TKey, TMergeRecursiveValue> $items
+     * @param \Hybrid\Contracts\Arrayable<TKey, TMergeRecursiveValue>|iterable<TKey, TMergeRecursiveValue> $items
      * @return static<TKey, TValue|TMergeRecursiveValue>
      *
      * @template TMergeRecursiveValue
@@ -801,15 +791,25 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     }
 
     /**
+     * Multiply the items in the collection by the multiplier.
+     *
+     * @param int $multiplier
+     * @return static
+     */
+    public function multiply( int $multiplier ) {
+        return $this->passthru( 'multiply', func_get_args() );
+    }
+
+    /**
      * Create a collection by using this collection for keys and another for its values.
      *
-     * @param  \IteratorAggregate<array-key, TCombineValue>|array<array-key, TCombineValue>|(callable(): \Generator<array-key, TCombineValue>) $values
+     * @param \IteratorAggregate<array-key, TCombineValue>|array<array-key, TCombineValue>|(callable(): \Generator<array-key, TCombineValue>) $values
      * @return static<TValue, TCombineValue>
      *
      * @template TCombineValue
      */
     public function combine( $values ) {
-        return new static(function () use ( $values ) {
+        return new static( function () use ( $values ) {
             $values = $this->makeIterator( $values );
 
             $errorMessage = 'Both parameters should have an equal number of elements';
@@ -829,13 +829,13 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
             if ( $values->valid() ) {
                 trigger_error( $errorMessage, E_USER_WARNING );
             }
-        });
+        } );
     }
 
     /**
      * Union the collection with the given items.
      *
-     * @param  \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
+     * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
      * @return static
      */
     public function union( $items ) {
@@ -845,12 +845,12 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Create a new collection consisting of every n-th element.
      *
-     * @param  int $step
-     * @param  int $offset
+     * @param int $step
+     * @param int $offset
      * @return static
      */
     public function nth( $step, $offset = 0 ) {
-        return new static(function () use ( $step, $offset ) {
+        return new static( function () use ( $step, $offset ) {
             $position = 0;
 
             foreach ( $this->slice( $offset ) as $item ) {
@@ -860,13 +860,13 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
 
                 $position++;
             }
-        });
+        } );
     }
 
     /**
      * Get the items with the specified keys.
      *
-     * @param  \Hybrid\Tools\Enumerable<array-key, TKey>|array<array-key, TKey>|string $keys
+     * @param \Hybrid\Tools\Enumerable<array-key, TKey>|array<array-key, TKey>|string $keys
      * @return static
      */
     public function only( $keys ) {
@@ -876,7 +876,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
             $keys = is_array( $keys ) ? $keys : func_get_args();
         }
 
-        return new static(function () use ( $keys ) {
+        return new static( function () use ( $keys ) {
             if ( is_null( $keys ) ) {
                 yield from $this;
             } else {
@@ -894,26 +894,63 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
                     }
                 }
             }
-        });
+        } );
+    }
+
+    /**
+     * Select specific values from the items within the collection.
+     *
+     * @param \Hybrid\Tools\Enumerable<array-key, TKey>|array<array-key, TKey>|string $keys
+     * @return static
+     */
+    public function select( $keys ) {
+        if ( $keys instanceof Enumerable ) {
+            $keys = $keys->all();
+        } elseif ( ! is_null( $keys ) ) {
+            $keys = is_array( $keys ) ? $keys : func_get_args();
+        }
+
+        return new static( function () use ( $keys ) {
+            if ( is_null( $keys ) ) {
+                yield from $this;
+            } else {
+                foreach ( $this as $item ) {
+                    $result = [];
+
+                    foreach ( $keys as $key ) {
+                        if ( Arr::accessible( $item ) && Arr::exists( $item, $key ) ) {
+                            $result[ $key ] = $item[ $key ];
+                        } elseif ( is_object( $item ) && isset( $item->{$key} ) ) {
+                            $result[ $key ] = $item->{$key};
+                        }
+                    }
+
+                    yield $result;
+                }
+            }
+        } );
     }
 
     /**
      * Push all of the given items onto the collection.
      *
-     * @param  iterable<array-key, TValue> $source
-     * @return static
+     * @param iterable<TConcatKey, TConcatValue> $source
+     * @return static<TKey|TConcatKey, TValue|TConcatValue>
+     *
+     * @template TConcatKey of array-key
+     * @template TConcatValue
      */
     public function concat( $source ) {
-        return ( new static(function () use ( $source ) {
+        return ( new static( function () use ( $source ) {
             yield from $this;
             yield from $source;
-        }) )->values();
+        } ) )->values();
     }
 
     /**
      * Get one or a specified number of items randomly from the collection.
      *
-     * @param  int|null $number
+     * @param int|null $number
      * @return static<int, TValue>|TValue
      * @throws \InvalidArgumentException
      */
@@ -926,11 +963,11 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Replace the collection items with the given items.
      *
-     * @param  \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
+     * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
      * @return static
      */
     public function replace( $items ) {
-        return new static(function () use ( $items ) {
+        return new static( function () use ( $items ) {
             $items = $this->getArrayableItems( $items );
 
             foreach ( $this as $key => $value ) {
@@ -946,13 +983,13 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
             foreach ( $items as $key => $value ) {
                 yield $key => $value;
             }
-        });
+        } );
     }
 
     /**
      * Recursively replace the collection items with the given items.
      *
-     * @param  \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
+     * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
      * @return static
      */
     public function replaceRecursive( $items ) {
@@ -971,15 +1008,15 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Search the collection for a given value and return the corresponding key if successful.
      *
-     * @param  TValue|(callable(TValue,TKey): bool) $value
-     * @param  bool                                 $strict
+     * @param TValue|(callable(TValue,TKey): bool) $value
+     * @param bool                                 $strict
      * @return TKey|false
      */
     public function search( $value, $strict = false ) {
         /** @var (callable(TValue,TKey): bool) $predicate */
         $predicate = $this->useAsCallable( $value )
             ? $value
-            : static fn( $item ) => $strict ? $item === $value : $item === $value;
+            : static fn( $item ) => $strict ? $item === $value : $item == $value;
 
         foreach ( $this as $key => $item ) {
             if ( $predicate( $item, $key ) ) {
@@ -991,24 +1028,77 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     }
 
     /**
+     * Get the item before the given item.
+     *
+     * @param TValue|(callable(TValue,TKey): bool) $value
+     * @param bool                                 $strict
+     * @return TValue|null
+     */
+    public function before( $value, $strict = false ) {
+        $previous = null;
+
+        /** @var (callable(TValue,TKey): bool) $predicate */
+        $predicate = $this->useAsCallable( $value )
+            ? $value
+            : static fn( $item ) => $strict ? $item === $value : $item == $value;
+
+        foreach ( $this as $key => $item ) {
+            if ( $predicate( $item, $key ) ) {
+                return $previous;
+            }
+
+            $previous = $item;
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the item after the given item.
+     *
+     * @param TValue|(callable(TValue,TKey): bool) $value
+     * @param bool                                 $strict
+     * @return TValue|null
+     */
+    public function after( $value, $strict = false ) {
+        $found = false;
+
+        /** @var (callable(TValue,TKey): bool) $predicate */
+        $predicate = $this->useAsCallable( $value )
+            ? $value
+            : static fn( $item ) => $strict ? $item === $value : $item == $value;
+
+        foreach ( $this as $key => $item ) {
+            if ( $found ) {
+                return $item;
+            }
+
+            if ( $predicate( $item, $key ) ) {
+                $found = true;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Shuffle the items in the collection.
      *
-     * @param  int|null $seed
      * @return static
      */
-    public function shuffle( $seed = null ) {
-        return $this->passthru( 'shuffle', func_get_args() );
+    public function shuffle() {
+        return $this->passthru( 'shuffle', [] );
     }
 
     /**
      * Create chunks representing a "sliding window" view of the items in the collection.
      *
-     * @param  int $size
-     * @param  int $step
+     * @param int $size
+     * @param int $step
      * @return static<int, static>
      */
     public function sliding( $size = 2, $step = 1 ) {
-        return new static(function () use ( $size, $step ) {
+        return new static( function () use ( $size, $step ) {
             $iterator = $this->getIterator();
 
             $chunk = [];
@@ -1016,10 +1106,10 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
             while ( $iterator->valid() ) {
                 $chunk[ $iterator->key() ] = $iterator->current();
 
-                if ( count( $chunk ) === $size ) {
-                    yield (new static( $chunk ))->tap(static function () use ( &$chunk, $step ) {
+                if ( count( $chunk ) == $size ) {
+                    yield ( new static( $chunk ) )->tap( static function () use ( &$chunk, $step ) {
                         $chunk = array_slice( $chunk, $step, null, true );
-                    });
+                    } );
 
                     // If the $step between chunks is bigger than each chunk's $size
                     // we will skip the extra items (which should never be in any
@@ -1035,17 +1125,17 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
 
                 $iterator->next();
             }
-        });
+        } );
     }
 
     /**
      * Skip the first {$count} items.
      *
-     * @param  int $count
+     * @param int $count
      * @return static
      */
     public function skip( $count ) {
-        return new static(function () use ( $count ) {
+        return new static( function () use ( $count ) {
             $iterator = $this->getIterator();
 
             while ( $iterator->valid() && $count-- ) {
@@ -1057,13 +1147,13 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
 
                 $iterator->next();
             }
-        });
+        } );
     }
 
     /**
      * Skip items in the collection until the given condition is met.
      *
-     * @param  TValue|callable(TValue,TKey): bool $value
+     * @param TValue|callable(TValue,TKey): bool $value
      * @return static
      */
     public function skipUntil( $value ) {
@@ -1075,13 +1165,13 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Skip items in the collection while the given condition is met.
      *
-     * @param  TValue|callable(TValue,TKey): bool $value
+     * @param TValue|callable(TValue,TKey): bool $value
      * @return static
      */
     public function skipWhile( $value ) {
         $callback = $this->useAsCallable( $value ) ? $value : $this->equality( $value );
 
-        return new static(function () use ( $callback ) {
+        return new static( function () use ( $callback ) {
             $iterator = $this->getIterator();
 
             while ( $iterator->valid() && $callback( $iterator->current(), $iterator->key() ) ) {
@@ -1093,18 +1183,18 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
 
                 $iterator->next();
             }
-        });
+        } );
     }
 
     /**
      * Get a slice of items from the enumerable.
      *
-     * @param  int      $offset
-     * @param  int|null $length
+     * @param int      $offset
+     * @param int|null $length
      * @return static
      */
     public function slice( $offset, $length = null ) {
-        if ( $offset < 0 || $length < 0 ) {
+        if ( 0 > $offset || 0 > $length ) {
             return $this->passthru( 'slice', func_get_args() );
         }
 
@@ -1116,7 +1206,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Split a collection into a certain number of groups.
      *
-     * @param  int $numberOfGroups
+     * @param int $numberOfGroups
      * @return static<int, static>
      */
     public function split( $numberOfGroups ) {
@@ -1126,9 +1216,9 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Get the first item in the collection, but only if exactly one item exists. Otherwise, throw an exception.
      *
-     * @param  (callable(TValue, TKey): bool)|string $key
-     * @param  mixed                                 $operator
-     * @param  mixed                                 $value
+     * @param (callable(TValue, TKey): bool)|string $key
+     * @param mixed                                 $operator
+     * @param mixed                                 $value
      * @return TValue
      * @throws \Hybrid\Tools\ItemNotFoundException
      * @throws \Hybrid\Tools\MultipleItemsFoundException
@@ -1139,7 +1229,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
             : $key;
 
         return $this
-            ->unless( $filter === null )
+            ->unless( null == $filter )
             ->filter( $filter )
             ->take( 2 )
             ->collect()
@@ -1149,9 +1239,9 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Get the first item in the collection but throw an exception if no matching items exist.
      *
-     * @param  (callable(TValue, TKey): bool)|string $key
-     * @param  mixed                                 $operator
-     * @param  mixed                                 $value
+     * @param (callable(TValue, TKey): bool)|string $key
+     * @param mixed                                 $operator
+     * @param mixed                                 $value
      * @return TValue
      * @throws \Hybrid\Tools\ItemNotFoundException
      */
@@ -1161,7 +1251,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
             : $key;
 
         return $this
-            ->unless( $filter === null )
+            ->unless( null == $filter )
             ->filter( $filter )
             ->take( 1 )
             ->collect()
@@ -1171,15 +1261,15 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Chunk the collection into chunks of the given size.
      *
-     * @param  int $size
+     * @param int $size
      * @return static<int, static>
      */
     public function chunk( $size ) {
-        if ( $size <= 0 ) {
+        if ( 0 >= $size ) {
             return static::empty();
         }
 
-        return new static(function () use ( $size ) {
+        return new static( function () use ( $size ) {
             $iterator = $this->getIterator();
 
             while ( $iterator->valid() ) {
@@ -1203,17 +1293,17 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
 
                 $iterator->next();
             }
-        });
+        } );
     }
 
     /**
      * Split a collection into a certain number of groups, and fill the first groups completely.
      *
-     * @param  int $numberOfGroups
+     * @param int $numberOfGroups
      * @return static<int, static>
      */
     public function splitIn( $numberOfGroups ) {
-        return $this->chunk( ceil( $this->count() / $numberOfGroups ) );
+        return $this->chunk( (int) ceil( $this->count() / $numberOfGroups ) );
     }
 
     /**
@@ -1223,7 +1313,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
      * @return static<int, static<int, TValue>>
      */
     public function chunkWhile( callable $callback ) {
-        return new static(function () use ( $callback ) {
+        return new static( function () use ( $callback ) {
             $iterator = $this->getIterator();
 
             $chunk = new Collection();
@@ -1249,7 +1339,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
             if ( $chunk->isNotEmpty() ) {
                 yield new static( $chunk );
             }
-        });
+        } );
     }
 
     /**
@@ -1265,7 +1355,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Sort items in descending order.
      *
-     * @param  int $options
+     * @param int $options
      * @return static
      */
     public function sortDesc( $options = SORT_REGULAR ) {
@@ -1276,8 +1366,8 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
      * Sort the collection using the given callback.
      *
      * @param array<array-key, (callable(TValue, TValue): mixed)|(callable(TValue, TKey): mixed)|string|array{string, string}>|(callable(TValue, TKey): mixed)|string $callback
-     * @param  int                                                                                                                                                     $options
-     * @param  bool                                                                                                                                                    $descending
+     * @param int                                                                                                                                                     $options
+     * @param bool                                                                                                                                                    $descending
      * @return static
      */
     public function sortBy( $callback, $options = SORT_REGULAR, $descending = false ) {
@@ -1288,7 +1378,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
      * Sort the collection in descending order using the given callback.
      *
      * @param array<array-key, (callable(TValue, TValue): mixed)|(callable(TValue, TKey): mixed)|string|array{string, string}>|(callable(TValue, TKey): mixed)|string $callback
-     * @param  int                                                                                                                                                     $options
+     * @param int                                                                                                                                                     $options
      * @return static
      */
     public function sortByDesc( $callback, $options = SORT_REGULAR ) {
@@ -1298,8 +1388,8 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Sort the collection keys.
      *
-     * @param  int  $options
-     * @param  bool $descending
+     * @param int  $options
+     * @param bool $descending
      * @return static
      */
     public function sortKeys( $options = SORT_REGULAR, $descending = false ) {
@@ -1309,7 +1399,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Sort the collection keys in descending order.
      *
-     * @param  int $options
+     * @param int $options
      * @return static
      */
     public function sortKeysDesc( $options = SORT_REGULAR ) {
@@ -1319,7 +1409,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Sort the collection keys using a callback.
      *
-     * @param  callable(TKey, TKey): int $callback
+     * @param callable(TKey, TKey): int $callback
      * @return static
      */
     public function sortKeysUsing( callable $callback ) {
@@ -1329,12 +1419,12 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Take the first or last {$limit} items.
      *
-     * @param  int $limit
+     * @param int $limit
      * @return static
      */
     public function take( $limit ) {
-        if ( $limit < 0 ) {
-            return new static(function () use ( $limit ) {
+        if ( 0 > $limit ) {
+            return new static( function () use ( $limit ) {
                 $limit      = abs( $limit );
                 $ringBuffer = [];
                 $position   = 0;
@@ -1348,10 +1438,10 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
                     $pointer = ( $position + $i ) % $limit;
                     yield $ringBuffer[ $pointer ][0] => $ringBuffer[ $pointer ][1];
                 }
-            });
+            } );
         }
 
-        return new static(function () use ( $limit ) {
+        return new static( function () use ( $limit ) {
             $iterator = $this->getIterator();
 
             while ( $limit-- ) {
@@ -1365,20 +1455,20 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
                     $iterator->next();
                 }
             }
-        });
+        } );
     }
 
     /**
      * Take items in the collection until the given condition is met.
      *
-     * @param  TValue|callable(TValue,TKey): bool $value
+     * @param TValue|callable(TValue,TKey): bool $value
      * @return static
      */
     public function takeUntil( $value ) {
         /** @var callable(TValue, TKey): bool $callback */
         $callback = $this->useAsCallable( $value ) ? $value : $this->equality( $value );
 
-        return new static(function () use ( $callback ) {
+        return new static( function () use ( $callback ) {
             foreach ( $this as $key => $item ) {
                 if ( $callback( $item, $key ) ) {
                     break;
@@ -1386,18 +1476,19 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
 
                 yield $key => $item;
             }
-        });
+        } );
     }
 
     /**
      * Take items in the collection until a given point in time.
      *
+     * @param \DateTimeInterface $timeout
      * @return static
      */
     public function takeUntilTimeout( DateTimeInterface $timeout ) {
         $timeout = $timeout->getTimestamp();
 
-        return new static(function () use ( $timeout ) {
+        return new static( function () use ( $timeout ) {
             if ( $this->now() >= $timeout ) {
                 return;
             }
@@ -1409,13 +1500,13 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
                     break;
                 }
             }
-        });
+        } );
     }
 
     /**
      * Take items in the collection while the given condition is met.
      *
-     * @param  TValue|callable(TValue,TKey): bool $value
+     * @param TValue|callable(TValue,TKey): bool $value
      * @return static
      */
     public function takeWhile( $value ) {
@@ -1428,17 +1519,38 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Pass each item in the collection to the given callback, lazily.
      *
-     * @param  callable(TValue, TKey): mixed $callback
+     * @param callable(TValue, TKey): mixed $callback
      * @return static
      */
     public function tapEach( callable $callback ) {
-        return new static(function () use ( $callback ) {
+        return new static( function () use ( $callback ) {
             foreach ( $this as $key => $value ) {
                 $callback( $value, $key );
 
                 yield $key => $value;
             }
-        });
+        } );
+    }
+
+    /**
+     * Throttle the values, releasing them at most once per the given seconds.
+     *
+     * @return static<TKey, TValue>
+     */
+    public function throttle( float $seconds ) {
+        return new static( function () use ( $seconds ) {
+            $microseconds = $seconds * 1000000;
+
+            foreach ( $this as $key => $value ) {
+                $fetchedAt = $this->preciseNow();
+
+                yield $key => $value;
+
+                $sleep = $microseconds - ( $this->preciseNow() - $fetchedAt );
+
+                $this->usleep( (int) $sleep );
+            }
+        } );
     }
 
     /**
@@ -1462,14 +1574,14 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Return only unique items from the collection array.
      *
-     * @param  (callable(TValue, TKey): mixed)|string|null $key
-     * @param  bool                                        $strict
+     * @param (callable(TValue, TKey): mixed)|string|null $key
+     * @param bool                                        $strict
      * @return static
      */
     public function unique( $key = null, $strict = false ) {
         $callback = $this->valueRetriever( $key );
 
-        return new static(function () use ( $callback, $strict ) {
+        return new static( function () use ( $callback, $strict ) {
             $exists = [];
 
             foreach ( $this as $key => $item ) {
@@ -1479,7 +1591,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
                     $exists[] = $id;
                 }
             }
-        });
+        } );
     }
 
     /**
@@ -1488,11 +1600,11 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
      * @return static<int, TValue>
      */
     public function values() {
-        return new static(function () {
+        return new static( function () {
             foreach ( $this as $item ) {
                 yield $item;
             }
-        });
+        } );
     }
 
     /**
@@ -1501,7 +1613,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
      * e.g. new LazyCollection([1, 2, 3])->zip([4, 5, 6]);
      *      => [[1, 4], [2, 5], [3, 6]]
      *
-     * @param  \Hybrid\Contracts\Arrayable<array-key, TZipValue>|iterable<array-key, TZipValue> ...$items
+     * @param \Hybrid\Contracts\Arrayable<array-key, TZipValue>|iterable<array-key, TZipValue> ...$items
      * @return static<int, static<int, TValue|TZipValue>>
      *
      * @template TZipValue
@@ -1509,7 +1621,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     public function zip( $items ) {
         $iterables = func_get_args();
 
-        return new static(function () use ( $iterables ) {
+        return new static( function () use ( $iterables ) {
             $iterators = Collection::make( $iterables )->map( fn( $iterable ) => $this->makeIterator( $iterable ) )->prepend( $this->getIterator() );
 
             while ( $iterators->contains->valid() ) {
@@ -1517,24 +1629,24 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
 
                 $iterators->each->next();
             }
-        });
+        } );
     }
 
     /**
      * Pad collection to the specified length with a value.
      *
-     * @param  int       $size
-     * @param  TPadValue $value
+     * @param int       $size
+     * @param TPadValue $value
      * @return static<int, TValue|TPadValue>
      *
      * @template TPadValue
      */
     public function pad( $size, $value ) {
-        if ( $size < 0 ) {
+        if ( 0 > $size ) {
             return $this->passthru( 'pad', func_get_args() );
         }
 
-        return new static(function () use ( $size, $value ) {
+        return new static( function () use ( $size, $value ) {
             $yielded = 0;
 
             foreach ( $this as $index => $item ) {
@@ -1546,7 +1658,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
             while ( $yielded++ < $size ) {
                 yield $value;
             }
-        });
+        } );
     }
 
     /**
@@ -1572,7 +1684,7 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Make an iterator from the given source.
      *
-     * @param  \IteratorAggregate<TIteratorKey, TIteratorValue>|array<TIteratorKey, TIteratorValue>|(callable(): \Generator<TIteratorKey, TIteratorValue>) $source
+     * @param \IteratorAggregate<TIteratorKey, TIteratorValue>|array<TIteratorKey, TIteratorValue>|(callable(): \Generator<TIteratorKey, TIteratorValue>) $source
      * @return \Traversable<TIteratorKey, TIteratorValue>
      *
      * @template TIteratorKey of array-key
@@ -1601,8 +1713,8 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Explode the "value" and "key" arguments passed to "pluck".
      *
-     * @param  string|array<string>      $value
-     * @param  string|array<string>|null $key
+     * @param string|array<string>      $value
+     * @param string|array<string>|null $key
      * @return array{array<string>,array<string>|null}
      */
     protected function explodePluckParameters( $value, $key ) {
@@ -1616,14 +1728,14 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
     /**
      * Pass this lazy collection through a method on the collection class.
      *
-     * @param  string       $method
-     * @param  array<mixed> $params
+     * @param string       $method
+     * @param array<mixed> $params
      * @return static
      */
     protected function passthru( $method, array $params ) {
-        return new static(function () use ( $method, $params ) {
+        return new static( function () use ( $method, $params ) {
             yield from $this->collect()->$method( ...$params );
-        });
+        } );
     }
 
     /**
@@ -1632,7 +1744,35 @@ class LazyCollection implements CanBeEscapedWhenCastToString, Enumerable {
      * @return int
      */
     protected function now() {
-        return Carbon::now()->timestamp;
+        return class_exists( Carbon::class )
+            ? Carbon::now()->timestamp
+            : time();
+    }
+
+    /**
+     * Get the precise current time.
+     *
+     * @return float
+     */
+    protected function preciseNow() {
+        return class_exists( Carbon::class )
+            ? Carbon::now()->getPreciseTimestamp()
+            : microtime( true ) * 1000000;
+    }
+
+    /**
+     * Sleep for the given amount of microseconds.
+     *
+     * @return void
+     */
+    protected function usleep( int $microseconds ) {
+        if ( 0 >= $microseconds ) {
+            return;
+        }
+
+        class_exists( Sleep::class )
+            ? Sleep::usleep( $microseconds )
+            : usleep( $microseconds );
     }
 
 }

@@ -104,7 +104,7 @@ class Date extends Facade {
     /**
      * Resolve the facade root instance from the container.
      *
-     * @param  string $name
+     * @param string $name
      * @return mixed
      */
     protected static function resolveFacadeInstance( $name ) {

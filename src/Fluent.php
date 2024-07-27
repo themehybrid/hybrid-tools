@@ -25,7 +25,7 @@ class Fluent implements Arrayable, ArrayAccess, Jsonable, JsonSerializable {
     /**
      * Create a new fluent instance.
      *
-     * @param  iterable<TKey, TValue> $attributes
+     * @param iterable<TKey, TValue> $attributes
      * @return void
      */
     public function __construct( $attributes = [] ) {
@@ -35,20 +35,44 @@ class Fluent implements Arrayable, ArrayAccess, Jsonable, JsonSerializable {
     }
 
     /**
-     * Get an attribute from the fluent instance.
+     * Get an attribute from the fluent instance using "dot" notation.
      *
-     * @param  TKey                                  $key
-     * @param  TGetDefault|(\Closure(): TGetDefault) $default
+     * @param TKey                                  $key
+     * @param TGetDefault|(\Closure(): TGetDefault) $default
      * @return TValue|TGetDefault
      *
      * @template TGetDefault
      */
     public function get( $key, $default = null ) {
+        return data_get( $this->attributes, $key, $default );
+    }
+
+    /**
+     * Get an attribute from the fluent instance.
+     *
+     * @param string $key
+     * @param mixed  $default
+     * @return mixed
+     */
+    public function value( $key, $default = null ) {
         if ( array_key_exists( $key, $this->attributes ) ) {
             return $this->attributes[ $key ];
         }
 
         return value( $default );
+    }
+
+    /**
+     * Get the value of the given key as a new Fluent instance.
+     *
+     * @param string $key
+     * @param mixed  $default
+     * @return static
+     */
+    public function scope( $key, $default = null ) {
+        return new static(
+            (array) $this->get( $key, $default )
+        );
     }
 
     /**
@@ -70,6 +94,16 @@ class Fluent implements Arrayable, ArrayAccess, Jsonable, JsonSerializable {
     }
 
     /**
+     * Convert the fluent instance to a Collection.
+     *
+     * @param string|null $key
+     * @return \Hybrid\Tools\Collection
+     */
+    public function collect( $key = null ) {
+        return new Collection( $this->get( $key ) );
+    }
+
+    /**
      * Convert the object into something JSON serializable.
      *
      * @return array<TKey, TValue>
@@ -81,7 +115,7 @@ class Fluent implements Arrayable, ArrayAccess, Jsonable, JsonSerializable {
     /**
      * Convert the fluent instance to JSON.
      *
-     * @param  int $options
+     * @param int $options
      * @return string
      */
     public function toJson( $options = 0 ) {
@@ -91,7 +125,7 @@ class Fluent implements Arrayable, ArrayAccess, Jsonable, JsonSerializable {
     /**
      * Determine if the given offset exists.
      *
-     * @param  TKey $offset
+     * @param TKey $offset
      */
     public function offsetExists( $offset ): bool {
         return isset( $this->attributes[ $offset ] );
@@ -100,18 +134,18 @@ class Fluent implements Arrayable, ArrayAccess, Jsonable, JsonSerializable {
     /**
      * Get the value for a given offset.
      *
-     * @param  TKey $offset
+     * @param TKey $offset
      * @return TValue|null
      */
     public function offsetGet( $offset ): mixed {
-        return $this->get( $offset );
+        return $this->value( $offset );
     }
 
     /**
      * Set the value at the given offset.
      *
-     * @param  TKey   $offset
-     * @param  TValue $value
+     * @param TKey   $offset
+     * @param TValue $value
      */
     public function offsetSet( $offset, $value ): void {
         $this->attributes[ $offset ] = $value;
@@ -120,7 +154,7 @@ class Fluent implements Arrayable, ArrayAccess, Jsonable, JsonSerializable {
     /**
      * Unset the value at the given offset.
      *
-     * @param  TKey $offset
+     * @param TKey $offset
      */
     public function offsetUnset( $offset ): void {
         unset( $this->attributes[ $offset ] );
@@ -129,8 +163,8 @@ class Fluent implements Arrayable, ArrayAccess, Jsonable, JsonSerializable {
     /**
      * Handle dynamic calls to the fluent instance to set attributes.
      *
-     * @param  TKey              $method
-     * @param  array{0: ?TValue} $parameters
+     * @param TKey              $method
+     * @param array{0: ?TValue} $parameters
      * @return $this
      */
     public function __call( $method, $parameters ) {
@@ -142,18 +176,18 @@ class Fluent implements Arrayable, ArrayAccess, Jsonable, JsonSerializable {
     /**
      * Dynamically retrieve the value of an attribute.
      *
-     * @param  TKey $key
+     * @param TKey $key
      * @return TValue|null
      */
     public function __get( $key ) {
-        return $this->get( $key );
+        return $this->value( $key );
     }
 
     /**
      * Dynamically set the value of an attribute.
      *
-     * @param  TKey   $key
-     * @param  TValue $value
+     * @param TKey   $key
+     * @param TValue $value
      * @return void
      */
     public function __set( $key, $value ) {
@@ -163,7 +197,7 @@ class Fluent implements Arrayable, ArrayAccess, Jsonable, JsonSerializable {
     /**
      * Dynamically check if an attribute is set.
      *
-     * @param  TKey $key
+     * @param TKey $key
      * @return bool
      */
     public function __isset( $key ) {
@@ -173,7 +207,7 @@ class Fluent implements Arrayable, ArrayAccess, Jsonable, JsonSerializable {
     /**
      * Dynamically unset an attribute.
      *
-     * @param  TKey $key
+     * @param TKey $key
      * @return void
      */
     public function __unset( $key ) {

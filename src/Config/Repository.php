@@ -21,7 +21,7 @@ class Repository implements ArrayAccess, ConfigContract {
     /**
      * Create a new configuration repository.
      *
-     * @param  array $items
+     * @param array $items
      * @return void
      */
     public function __construct( array $items = [] ) {
@@ -31,7 +31,7 @@ class Repository implements ArrayAccess, ConfigContract {
     /**
      * Determine if the given configuration value exists.
      *
-     * @param  string $key
+     * @param string $key
      * @return bool
      */
     public function has( $key ) {
@@ -41,8 +41,8 @@ class Repository implements ArrayAccess, ConfigContract {
     /**
      * Get the specified configuration value.
      *
-     * @param  array|string $key
-     * @param  mixed        $default
+     * @param array|string $key
+     * @param mixed        $default
      * @return mixed
      */
     public function get( $key, $default = null ) {
@@ -56,7 +56,7 @@ class Repository implements ArrayAccess, ConfigContract {
     /**
      * Get many configuration values.
      *
-     * @param  array $keys
+     * @param array $keys
      * @return array
      */
     public function getMany( $keys ) {
@@ -74,10 +74,101 @@ class Repository implements ArrayAccess, ConfigContract {
     }
 
     /**
+     * Get the specified string configuration value.
+     *
+     * @param string                                 $key
+     * @param (\Closure():(string|null))|string|null $default
+     */
+    public function string( string $key, $default = null ): string {
+        $value = $this->get( $key, $default );
+
+        if ( ! is_string( $value ) ) {
+            throw new \InvalidArgumentException(
+                sprintf( 'Configuration value for key [%s] must be a string, %s given.', $key, gettype( $value ) )
+            );
+        }
+
+        return $value;
+    }
+
+    /**
+     * Get the specified integer configuration value.
+     *
+     * @param string                           $key
+     * @param (\Closure():(int|null))|int|null $default
+     */
+    public function integer( string $key, $default = null ): int {
+        $value = $this->get( $key, $default );
+
+        if ( ! is_int( $value ) ) {
+            throw new \InvalidArgumentException(
+                sprintf( 'Configuration value for key [%s] must be an integer, %s given.', $key, gettype( $value ) )
+            );
+        }
+
+        return $value;
+    }
+
+    /**
+     * Get the specified float configuration value.
+     *
+     * @param string                               $key
+     * @param (\Closure():(float|null))|float|null $default
+     */
+    public function float( string $key, $default = null ): float {
+        $value = $this->get( $key, $default );
+
+        if ( ! is_float( $value ) ) {
+            throw new \InvalidArgumentException(
+                sprintf( 'Configuration value for key [%s] must be a float, %s given.', $key, gettype( $value ) )
+            );
+        }
+
+        return $value;
+    }
+
+    /**
+     * Get the specified boolean configuration value.
+     *
+     * @param string                             $key
+     * @param (\Closure():(bool|null))|bool|null $default
+     */
+    public function boolean( string $key, $default = null ): bool {
+        $value = $this->get( $key, $default );
+
+        if ( ! is_bool( $value ) ) {
+            throw new \InvalidArgumentException(
+                sprintf( 'Configuration value for key [%s] must be a boolean, %s given.', $key, gettype( $value ) )
+            );
+        }
+
+        return $value;
+    }
+
+    /**
+     * Get the specified array configuration value.
+     *
+     * @param string                                                                   $key
+     * @param (\Closure():(array<array-key, mixed>|null))|array<array-key, mixed>|null $default
+     * @return array<array-key, mixed>
+     */
+    public function array( string $key, $default = null ): array {
+        $value = $this->get( $key, $default );
+
+        if ( ! is_array( $value ) ) {
+            throw new \InvalidArgumentException(
+                sprintf( 'Configuration value for key [%s] must be an array, %s given.', $key, gettype( $value ) )
+            );
+        }
+
+        return $value;
+    }
+
+    /**
      * Set a given configuration value.
      *
-     * @param  array|string $key
-     * @param  mixed        $value
+     * @param array|string $key
+     * @param mixed        $value
      * @return void
      */
     public function set( $key, $value = null ) {
@@ -91,8 +182,8 @@ class Repository implements ArrayAccess, ConfigContract {
     /**
      * Prepend a value onto an array configuration value.
      *
-     * @param  string $key
-     * @param  mixed  $value
+     * @param string $key
+     * @param mixed  $value
      * @return void
      */
     public function prepend( $key, $value ) {
@@ -106,8 +197,8 @@ class Repository implements ArrayAccess, ConfigContract {
     /**
      * Push a value onto an array configuration value.
      *
-     * @param  string $key
-     * @param  mixed  $value
+     * @param string $key
+     * @param mixed  $value
      * @return void
      */
     public function push( $key, $value ) {
@@ -130,7 +221,7 @@ class Repository implements ArrayAccess, ConfigContract {
     /**
      * Determine if the given configuration option exists.
      *
-     * @param  string $key
+     * @param string $key
      */
     public function offsetExists( $key ): bool {
         return $this->has( $key );
@@ -139,7 +230,7 @@ class Repository implements ArrayAccess, ConfigContract {
     /**
      * Get a configuration option.
      *
-     * @param  string $key
+     * @param string $key
      */
     public function offsetGet( $key ): mixed {
         return $this->get( $key );
@@ -148,8 +239,8 @@ class Repository implements ArrayAccess, ConfigContract {
     /**
      * Set a configuration option.
      *
-     * @param  string $key
-     * @param  mixed  $value
+     * @param string $key
+     * @param mixed  $value
      */
     public function offsetSet( $key, $value ): void {
         $this->set( $key, $value );
@@ -158,7 +249,7 @@ class Repository implements ArrayAccess, ConfigContract {
     /**
      * Unset a configuration option.
      *
-     * @param  string $key
+     * @param string $key
      */
     public function offsetUnset( $key ): void {
         $this->set( $key, null );
