@@ -6,7 +6,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\maybe_define_constant' ) ) {
     /**
      * Define a constant if it is not already defined.
      *
-     * @param string $name  Constant name.
+     * @param string $name Constant name.
      * @param string $value Value.
      */
     function maybe_define_constant( $name, $value ) {
@@ -61,7 +61,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\get_child_theme_file_uri' ) ) {
         /**
          * Filters the URL to a file in the child theme.
          *
-         * @param string $url  The file URL.
+         * @param string $url The file URL.
          * @param string $file The requested file to search for.
          */
         return apply_filters( 'hybrid/tools/wordpress/child_theme_file_uri', $url, $file );

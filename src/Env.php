@@ -48,7 +48,7 @@ class Env {
      * @return \Dotenv\Repository\RepositoryInterface
      */
     public static function getRepository() {
-        if ( static::$repository === null ) {
+        if ( null === static::$repository ) {
             $builder = RepositoryBuilder::createWithDefaultAdapters();
 
             if ( static::$putenv ) {
@@ -64,8 +64,8 @@ class Env {
     /**
      * Get the value of an environment variable.
      *
-     * @param  string $key
-     * @param  mixed  $default
+     * @param string $key
+     * @param mixed  $default
      * @return mixed
      */
     public static function get( $key, $default = null ) {
@@ -75,7 +75,7 @@ class Env {
     /**
      * Get the value of a required environment variable.
      *
-     * @param  string $key
+     * @param string $key
      * @return mixed
      * @throws \RuntimeException
      */
@@ -86,12 +86,12 @@ class Env {
     /**
      * Get the possible option for this environment variable.
      *
-     * @param  string $key
+     * @param string $key
      * @return \PhpOption\Option|\PhpOption\Some
      */
     protected static function getOption( $key ) {
         return Option::fromValue( static::getRepository()->get( $key ) )
-            ->map(static function ( $value ) {
+            ->map( static function ( $value ) {
                 switch ( strtolower( $value ) ) {
                     case 'true':
                     case '(true)':
@@ -112,7 +112,7 @@ class Env {
                 }
 
                 return $value;
-            });
+            } );
     }
 
 }

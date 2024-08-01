@@ -9,7 +9,7 @@
  * @link      https://themehybrid.com/hybrid-tools
  *
  * @author    Theme Hybrid
- * @copyright Copyright (c) 2008 - 2023, Theme Hybrid
+ * @copyright Copyright (c) 2008 - 2024, Theme Hybrid
  * @license   http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
  */
 
@@ -24,7 +24,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\append_config' ) ) {
     /**
      * Assign high numeric IDs to a config item to force appending.
      *
-     * @param  array $array
+     * @param array $array
      * @return array
      */
     function append_config( array $array ) {
@@ -46,8 +46,12 @@ if ( ! function_exists( __NAMESPACE__ . '\\blank' ) ) {
     /**
      * Determine if the given value is "blank".
      *
-     * @param  mixed $value
+     * @param mixed $value
      * @return bool
+     *
+     * @phpstan-assert-if-false !=''|null $value
+     *
+     * @phpstan-assert-if-true !=numeric|bool $value
      */
     function blank( $value ) {
         if ( is_null( $value ) ) {
@@ -66,6 +70,10 @@ if ( ! function_exists( __NAMESPACE__ . '\\blank' ) ) {
             return count( $value ) === 0;
         }
 
+        if ( $value instanceof Stringable ) {
+            return trim( (string) $value ) === '';
+        }
+
         return empty( $value );
     }
 }
@@ -74,7 +82,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\class_basename' ) ) {
     /**
      * Get the class "basename" of the given object / class.
      *
-     * @param  string|object $class
+     * @param string|object $class
      * @return string
      */
     function class_basename( $class ) {
@@ -88,7 +96,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\class_uses_recursive' ) ) {
     /**
      * Returns all traits used by a class, its parent classes and trait of their traits.
      *
-     * @param  object|string $class
+     * @param object|string $class
      * @return array
      */
     function class_uses_recursive( $class ) {
@@ -98,7 +106,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\class_uses_recursive' ) ) {
 
         $results = [];
 
-        foreach ( array_reverse( class_parents( $class ) ) + [ $class => $class ] as $class ) {
+        foreach ( array_reverse( class_parents( $class ) ?: [] ) + [ $class => $class ] as $class ) {
             $results += trait_uses_recursive( $class );
         }
 
@@ -110,8 +118,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\collect' ) ) {
     /**
      * Create a collection from the given value.
      *
-     * @since  1.0.0
-     * @param  \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue>|null $value
+     * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue>|null $value
      * @return \Hybrid\Tools\Collection<TKey, TValue>
      *
      * @template TKey of array-key
@@ -126,9 +133,9 @@ if ( ! function_exists( __NAMESPACE__ . '\\data_fill' ) ) {
     /**
      * Fill in data where it's missing.
      *
-     * @param  mixed        $target
-     * @param  string|array $key
-     * @param  mixed        $value
+     * @param mixed        $target
+     * @param string|array $key
+     * @param mixed        $value
      * @return mixed
      */
     function data_fill( &$target, $key, $value ) {
@@ -140,9 +147,9 @@ if ( ! function_exists( __NAMESPACE__ . '\\data_get' ) ) {
     /**
      * Get an item from an array or object using "dot" notation.
      *
-     * @param  mixed                 $target
-     * @param  string|array|int|null $key
-     * @param  mixed                 $default
+     * @param mixed                 $target
+     * @param string|array|int|null $key
+     * @param mixed                 $default
      * @return mixed
      */
     function data_get( $target, $key, $default = null ) {
@@ -159,7 +166,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\data_get' ) ) {
                 return $target;
             }
 
-            if ( $segment === '*' ) {
+            if ( '*' === $segment ) {
                 if ( $target instanceof Collection ) {
                     $target = $target->all();
                 } elseif ( ! is_iterable( $target ) ) {
@@ -172,10 +179,17 @@ if ( ! function_exists( __NAMESPACE__ . '\\data_get' ) ) {
                     $result[] = data_get( $item, $key );
                 }
 
-                return in_array( '*', $key )
-                    ? Arr::collapse( $result )
-                    : $result;
+                return in_array( '*', $key ) ? Arr::collapse( $result ) : $result;
             }
+
+            $segment = match ( $segment ) {
+                '\*' => '*',
+                '\{first}' => '{first}',
+                '{first}' => array_key_first( is_array( $target ) ? $target : collect( $target )->all() ),
+                '\{last}' => '{last}',
+                '{last}' => array_key_last( is_array( $target ) ? $target : collect( $target )->all() ),
+                default => $segment,
+            };
 
             if ( Arr::accessible( $target ) && Arr::exists( $target, $segment ) ) {
                 $target = $target[ $segment ];
@@ -194,16 +208,16 @@ if ( ! function_exists( __NAMESPACE__ . '\\data_set' ) ) {
     /**
      * Set an item on an array or object using dot notation.
      *
-     * @param  mixed        $target
-     * @param  string|array $key
-     * @param  mixed        $value
-     * @param  bool         $overwrite
+     * @param mixed        $target
+     * @param string|array $key
+     * @param mixed        $value
+     * @param bool         $overwrite
      * @return mixed
      */
     function data_set( &$target, $key, $value, $overwrite = true ) {
         $segments = is_array( $key ) ? $key : explode( '.', $key );
 
-        if ( ( $segment = array_shift( $segments ) ) === '*' ) {
+        if ( '*' === ( $segment = array_shift( $segments ) ) ) {
             if ( ! Arr::accessible( $target ) ) {
                 $target = [];
             }
@@ -255,14 +269,14 @@ if ( ! function_exists( __NAMESPACE__ . '\\data_forget' ) ) {
     /**
      * Remove / unset an item from an array or object using "dot" notation.
      *
-     * @param  mixed                 $target
-     * @param  string|array|int|null $key
+     * @param mixed                 $target
+     * @param string|array|int|null $key
      * @return mixed
      */
     function data_forget( &$target, $key ) {
         $segments = is_array( $key ) ? $key : explode( '.', $key );
 
-        if ( ( $segment = array_shift( $segments ) ) === '*' && Arr::accessible( $target ) ) {
+        if ( '*' === ( $segment = array_shift( $segments ) ) && Arr::accessible( $target ) ) {
             if ( $segments ) {
                 foreach ( $target as &$inner ) {
                     data_forget( $inner, $segments );
@@ -290,7 +304,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\head' ) ) {
     /**
      * Get the first element of an array. Useful for method chaining.
      *
-     * @param  array $array
+     * @param array $array
      * @return mixed
      */
     function head( $array ) {
@@ -302,7 +316,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\last' ) ) {
     /**
      * Get the last element from an array.
      *
-     * @param  array $array
+     * @param array $array
      * @return mixed
      */
     function last( $array ) {
@@ -314,9 +328,12 @@ if ( ! function_exists( __NAMESPACE__ . '\\value' ) ) {
     /**
      * Return the default value of the given value.
      *
-     * @param  mixed $value
-     * @param mixed ...$args
-     * @return mixed
+     * @param TValue|\Closure(TArgs): TValue $value
+     * @param TArgs                          ...$args
+     * @return TValue
+     *
+     * @template TValue
+     * @template TArgs
      */
     function value( $value, ...$args ) {
         return $value instanceof Closure
@@ -329,8 +346,8 @@ if ( ! function_exists( __NAMESPACE__ . '\\e' ) ) {
     /**
      * Encode HTML special characters in a string.
      *
-     * @param  \Hybrid\Tools\DeferringDisplayableValue|\Hybrid\Contracts\Htmlable|\BackedEnum|string|null $value
-     * @param  bool                                                                                       $doubleEncode
+     * @param \Hybrid\Tools\DeferringDisplayableValue|\Hybrid\Contracts\Htmlable|\BackedEnum|string|int|float|null $value
+     * @param bool                                                                                                 $doubleEncode
      * @return string
      */
     function e( $value, $doubleEncode = true ) {
@@ -354,8 +371,8 @@ if ( ! function_exists( 'env' ) ) {
     /**
      * Gets the value of an environment variable.
      *
-     * @param  string $key
-     * @param  mixed  $default
+     * @param string $key
+     * @param mixed  $default
      * @return mixed
      */
     function env( $key, $default = null ) {
@@ -367,11 +384,42 @@ if ( ! function_exists( __NAMESPACE__ . '\\filled' ) ) {
     /**
      * Determine if a value is "filled".
      *
-     * @param  mixed $value
+     * @param mixed $value
      * @return bool
+     *
+     * @phpstan-assert-if-true !=''|null $value
+     *
+     * @phpstan-assert-if-false !=numeric|bool $value
      */
     function filled( $value ) {
         return ! blank( $value );
+    }
+}
+
+if ( ! function_exists( __NAMESPACE__ . '\\fluent' ) ) {
+    /**
+     * Create an Fluent object from the given value.
+     *
+     * @param object|array $value
+     * @return \Hybrid\Tools\Fluent
+     */
+    function fluent( $value ) {
+        return new Fluent( $value );
+    }
+}
+
+if ( ! function_exists( __NAMESPACE__ . '\\literal' ) ) {
+    /**
+     * Return a new literal or anonymous object using named arguments.
+     *
+     * @return \stdClass
+     */
+    function literal( ...$arguments ) {
+        if ( count( $arguments ) === 1 && array_is_list( $arguments ) ) {
+            return $arguments[0];
+        }
+
+        return (object) $arguments;
     }
 }
 
@@ -379,10 +427,12 @@ if ( ! function_exists( __NAMESPACE__ . '\\object_get' ) ) {
     /**
      * Get an item from an object using "dot" notation.
      *
-     * @param  object      $object
-     * @param  string|null $key
-     * @param  mixed       $default
-     * @return mixed
+     * @param TValue      $object
+     * @param string|null $key
+     * @param mixed       $default
+     * @return ($key is empty ? TValue : mixed)
+     *
+     * @template TValue of object
      */
     function object_get( $object, $key, $default = null ) {
         if ( is_null( $key ) || trim( $key ) === '' ) {
@@ -401,12 +451,35 @@ if ( ! function_exists( __NAMESPACE__ . '\\object_get' ) ) {
     }
 }
 
+if ( ! function_exists( __NAMESPACE__ . '\\once' ) ) {
+    /**
+     * Ensures a callable is only called once, and returns the result on subsequent calls.
+     *
+     * @param callable(): TReturnType $callback
+     * @return TReturnType
+     *
+     * @template  TReturnType
+     */
+    function once( callable $callback ) {
+        $onceable = Onceable::tryFromTrace(
+            debug_backtrace( DEBUG_BACKTRACE_PROVIDE_OBJECT, 2 ),
+            $callback
+        );
+
+        return $onceable ? Once::instance()->value( $onceable ) : call_user_func( $callback );
+    }
+}
+
 if ( ! function_exists( __NAMESPACE__ . '\\optional' ) ) {
     /**
      * Provide access to optional objects.
      *
-     * @param  mixed $value
-     * @return mixed
+     * @param TValue                           $value
+     * @param (callable(TValue): TReturn)|null $callback
+     * @return ($callback is null ? \Hybrid\Tools\Optional : ($value is null ? null : TReturn))
+     *
+     * @template TValue
+     * @template TReturn
      */
     function optional( $value = null, ?callable $callback = null ) {
         if ( is_null( $callback ) ) {
@@ -423,17 +496,63 @@ if ( ! function_exists( __NAMESPACE__ . '\\preg_replace_array' ) ) {
     /**
      * Replace a given pattern with each value in the array in sequentially.
      *
-     * @param  string $pattern
-     * @param  array  $replacements
-     * @param  string $subject
+     * @param string $pattern
+     * @param array  $replacements
+     * @param string $subject
      * @return string
      */
     function preg_replace_array( $pattern, array $replacements, $subject ) {
-        return preg_replace_callback($pattern, static function () use ( &$replacements ) {
+        return preg_replace_callback( $pattern, static function () use ( &$replacements ) {
             foreach ( $replacements as $value ) {
                 return array_shift( $replacements );
             }
-        }, $subject);
+        }, $subject );
+    }
+}
+
+if ( ! function_exists( __NAMESPACE__ . '\\retry' ) ) {
+    /**
+     * Retry an operation a given number of times.
+     *
+     * @param int|array<int, int>                $times
+     * @param callable(int): TValue              $callback
+     * @param int|\Closure(int, \Throwable): int $sleepMilliseconds
+     * @param (callable(\Throwable): bool)|null  $when
+     * @return TValue
+     * @throws \Throwable
+     *
+     * @template TValue
+     */
+    function retry( $times, callable $callback, $sleepMilliseconds = 0, $when = null ) {
+        $attempts = 0;
+
+        $backoff = [];
+
+        if ( is_array( $times ) ) {
+            $backoff = $times;
+
+            $times = count( $times ) + 1;
+        }
+
+        beginning:
+        $attempts++;
+        --$times;
+
+        try {
+            return $callback( $attempts );
+        } catch ( \Throwable $e ) {
+            if ( 1 > $times || ( $when && ! $when( $e ) ) ) {
+                throw $e;
+            }
+
+            $sleepMilliseconds = $backoff[ $attempts - 1 ] ?? $sleepMilliseconds;
+
+            if ( $sleepMilliseconds ) {
+                Sleep::usleep( value( $sleepMilliseconds, $attempts, $e ) * 1000 );
+            }
+
+            goto beginning;
+        }
     }
 }
 
@@ -441,13 +560,12 @@ if ( ! function_exists( __NAMESPACE__ . '\\str' ) ) {
     /**
      * Get a new stringable object from the given string.
      *
-     * @param  string|null $string
-     * @return \Hybrid\Tools\Stringable|mixed
+     * @param string|null $string
+     * @return ($string is null ? object : \Hybrid\Tools\Stringable)
      */
     function str( $string = null ) {
         if ( func_num_args() === 0 ) {
-            return new class()
-            {
+            return new class() {
 
                 public function __call( $method, $parameters ) {
                     return Str::$method( ...$parameters );
@@ -468,9 +586,11 @@ if ( ! function_exists( __NAMESPACE__ . '\\tap' ) ) {
     /**
      * Call the given Closure with the given value then return the value.
      *
-     * @param  mixed         $value
-     * @param  callable|null $callback
-     * @return mixed
+     * @param TValue                         $value
+     * @param (callable(TValue): mixed)|null $callback
+     * @return ($callback is null ? \Hybrid\Tools\HigherOrderTapProxy : TValue)
+     *
+     * @template TValue
      */
     function tap( $value, $callback = null ) {
         if ( is_null( $callback ) ) {
@@ -487,12 +607,13 @@ if ( ! function_exists( __NAMESPACE__ . '\\throw_if' ) ) {
     /**
      * Throw the given exception if the given condition is true.
      *
-     * @param  mixed                                      $condition
-     * @param  TException|class-string<TException>|string $exception
-     * @param  mixed                                      ...$parameters
-     * @return mixed
+     * @param TValue                                     $condition
+     * @param TException|class-string<TException>|string $exception
+     * @param mixed                                      ...$parameters
+     * @return TValue
      * @throws TException
      *
+     * @template TValue
      * @template TException of \Throwable
      */
     function throw_if( $condition, $exception = 'RuntimeException', ...$parameters ) {
@@ -512,12 +633,13 @@ if ( ! function_exists( __NAMESPACE__ . '\\throw_unless' ) ) {
     /**
      * Throw the given exception unless the given condition is true.
      *
-     * @param  mixed                                      $condition
-     * @param  TException|class-string<TException>|string $exception
-     * @param  mixed                                      ...$parameters
-     * @return mixed
+     * @param TValue                                     $condition
+     * @param TException|class-string<TException>|string $exception
+     * @param mixed                                      ...$parameters
+     * @return TValue
      * @throws TException
      *
+     * @template TValue
      * @template TException of \Throwable
      */
     function throw_unless( $condition, $exception = 'RuntimeException', ...$parameters ) {
@@ -531,7 +653,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\trait_uses_recursive' ) ) {
     /**
      * Returns all traits used by a trait and its traits.
      *
-     * @param  object|string $trait
+     * @param object|string $trait
      * @return array
      */
     function trait_uses_recursive( $trait ) {
@@ -549,14 +671,14 @@ if ( ! function_exists( __NAMESPACE__ . '\\transform' ) ) {
     /**
      * Transform the given value if it is present.
      *
-     * @param  TValue                                   $value
-     * @param  callable(TValue): TReturn                $callback
-     * @param  TDefault|callable(TValue): TDefault|null $default
-     * @return ($value is empty ? ($default is null ? null : TDefault) : TReturn)
+     * @param TValue                              $value
+     * @param callable(TValue): TReturn           $callback
+     * @param TDefault|callable(TValue): TDefault $default
+     * @return ($value is empty ? TDefault : TReturn)
      *
-     * @template TValue of mixed
-     * @template TReturn of mixed
-     * @template TDefault of mixed
+     * @template TValue
+     * @template TReturn
+     * @template TDefault
      */
     function transform( $value, callable $callback, $default = null ) {
         if ( filled( $value ) ) {
@@ -586,8 +708,8 @@ if ( ! function_exists( __NAMESPACE__ . '\\with' ) ) {
     /**
      * Return the given value, optionally passed through the given callback.
      *
-     * @param  TValue                             $value
-     * @param  (callable(TValue): (TReturn))|null $callback
+     * @param TValue                             $value
+     * @param (callable(TValue): (TReturn))|null $callback
      * @return ($callback is null ? TValue : TReturn)
      *
      * @template TValue
@@ -605,8 +727,8 @@ if ( ! function_exists( __NAMESPACE__ . '\\config' ) ) {
      *
      * If an array is passed as the key, we will assume you want to set an array of values.
      *
-     * @param  array|string|null $key
-     * @param  mixed             $default
+     * @param array|string|null $key
+     * @param mixed             $default
      * @return mixed|\Hybrid\Tools\Config\Repository
      */
     function config( $key = null, $default = null ) {
@@ -626,7 +748,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\now' ) ) {
     /**
      * Create a new Carbon instance for the current time.
      *
-     * @param  \DateTimeZone|string|null $tz
+     * @param \DateTimeZone|string|null $tz
      * @return \Hybrid\Tools\Carbon
      */
     function now( $tz = null ) {
@@ -638,7 +760,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\today' ) ) {
     /**
      * Create a new Carbon instance for the current date.
      *
-     * @param  \DateTimeZone|string|null $tz
+     * @param \DateTimeZone|string|null $tz
      * @return \Hybrid\Tools\Carbon
      */
     function today( $tz = null ) {

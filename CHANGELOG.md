@@ -2,22 +2,37 @@
 
 You can see the changes made via the [commit log](https://github.com/themehybrid/hybrid-tools/commits/master) for the latest release.
 
+## [2.0.3] - 2024-08-01
+
+### Changed
+
+- sync with https://github.com/illuminate/support/releases/tag/v11.18.1
+- sync with https://github.com/illuminate/collections/releases/tag/v11.18.1
+- sync with https://github.com/illuminate/conditionable/releases/tag/v11.18.1
+- sync with https://github.com/illuminate/config/releases/tag/v11.18.1
+- sync with https://github.com/illuminate/macroable/releases/tag/v11.18.1
+- Add composer minimum-stability to "dev"
+- Add composer prefer-stable to true
+- Add composer sort-packages configuration
+- Update copyright date
+- Update lint php
+
 ## [2.0.2] - 2024-06-11
 
 ### Changed
 
-* fixed typo and performed PHP linting
+- fixed typo and performed PHP linting
 
 ## [2.0.1] - 2023-11-07
 
 ### Changed
 
-* sync with https://github.com/illuminate/collections/releases/tag/v10.25.1
-* sync with https://github.com/illuminate/support/releases/tag/v10.25.1
-* add `with` helper function
-* add `Benchmark` class
-* add `AccessiblePrivateMethods` trait class for WordPress filters & actions use with private methods
-* add `maybe_define_constant`, `get_child_theme_file_path`, `get_child_theme_file_uri` WordPress helper functions
+- sync with https://github.com/illuminate/collections/releases/tag/v10.25.1
+- sync with https://github.com/illuminate/support/releases/tag/v10.25.1
+- add `with` helper function
+- add `Benchmark` class
+- add `AccessiblePrivateMethods` trait class for WordPress filters & actions use with private methods
+- add `maybe_define_constant`, `get_child_theme_file_path`, `get_child_theme_file_uri` WordPress helper functions
 
 ## [2.0.0] - 2023-08-23
 

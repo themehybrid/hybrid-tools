@@ -58,14 +58,14 @@ trait AccessiblePrivateMethods {
      *
      * $callback can be a standard callable, or a string representing the name of a method in this class.
      *
-     * @param string          $hook_name       The name of the action to add the callback to.
-     * @param callable|string $callback        The callback to be run when the action is called.
-     * @param int             $priority        Optional. Used to specify the order in which the functions
-     *                                         associated with a particular action are executed.
-     *                                         Lower numbers correspond with earlier execution,
-     *                                         and functions with the same priority are executed
-     *                                         in the order in which they were added to the action. Default 10.
-     * @param int             $accepted_args   Optional. The number of arguments the function accepts. Default 1.
+     * @param string          $hook_name The name of the action to add the callback to.
+     * @param callable|string $callback The callback to be run when the action is called.
+     * @param int             $priority Optional. Used to specify the order in which the functions
+     *                                  associated with a particular action are executed.
+     *                                  Lower numbers correspond with earlier execution,
+     *                                  and functions with the same priority are executed
+     *                                  in the order in which they were added to the action. Default 10.
+     * @param int             $accepted_args Optional. The number of arguments the function accepts. Default 1.
      */
     protected static function add_action( string $hook_name, $callback, int $priority = 10, int $accepted_args = 1 ): void {
         self::process_callback_before_hooking( $callback );
@@ -79,14 +79,14 @@ trait AccessiblePrivateMethods {
      *
      * $callback can be a standard callable, or a string representing the name of a method in this class.
      *
-     * @param string          $hook_name       The name of the filter to add the callback to.
-     * @param callable|string $callback        The callback to be run when the filter is called.
-     * @param int             $priority        Optional. Used to specify the order in which the functions
-     *                                         associated with a particular filter are executed.
-     *                                         Lower numbers correspond with earlier execution,
-     *                                         and functions with the same priority are executed
-     *                                         in the order in which they were added to the filter. Default 10.
-     * @param int             $accepted_args   Optional. The number of arguments the function accepts. Default 1.
+     * @param string          $hook_name The name of the filter to add the callback to.
+     * @param callable|string $callback The callback to be run when the filter is called.
+     * @param int             $priority Optional. Used to specify the order in which the functions
+     *                                  associated with a particular filter are executed.
+     *                                  Lower numbers correspond with earlier execution,
+     *                                  and functions with the same priority are executed
+     *                                  in the order in which they were added to the filter. Default 10.
+     * @param int             $accepted_args Optional. The number of arguments the function accepts. Default 1.
      */
     protected static function add_filter( string $hook_name, $callback, int $priority = 10, int $accepted_args = 1 ): void {
         self::process_callback_before_hooking( $callback );
@@ -124,6 +124,7 @@ trait AccessiblePrivateMethods {
         // "is_callable" always returns true if the class implements __call.
         if ( method_exists( $this, $method_name ) ) {
             $this->_accessible_private_methods[ $method_name ] = $method_name;
+
             return true;
         }
 
@@ -139,6 +140,7 @@ trait AccessiblePrivateMethods {
     protected static function mark_static_method_as_accessible( string $method_name ): bool {
         if ( method_exists( __CLASS__, $method_name ) ) {
             static::$_accessible_static_private_methods[ $method_name ] = $method_name;
+
             return true;
         }
 

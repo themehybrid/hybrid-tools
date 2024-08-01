@@ -38,6 +38,7 @@ abstract class Manager {
     /**
      * Create a new manager instance.
      *
+     * @param \Hybrid\Contracts\Container\Container $container
      * @return void
      */
     public function __construct( Container $container ) {
@@ -55,7 +56,7 @@ abstract class Manager {
     /**
      * Get a driver instance.
      *
-     * @param  string|null $driver
+     * @param string|null $driver
      * @return mixed
      * @throws \InvalidArgumentException
      */
@@ -63,9 +64,9 @@ abstract class Manager {
         $driver = $driver ?: $this->getDefaultDriver();
 
         if ( is_null( $driver ) ) {
-            throw new \InvalidArgumentException(sprintf(
+            throw new \InvalidArgumentException( sprintf(
                 'Unable to resolve NULL driver for [%s].', static::class
-            ));
+            ) );
         }
 
         // If the given driver has not been created before, we will create the instances
@@ -81,7 +82,7 @@ abstract class Manager {
     /**
      * Create a new driver instance.
      *
-     * @param  string $driver
+     * @param string $driver
      * @return mixed
      * @throws \InvalidArgumentException
      */
@@ -105,7 +106,7 @@ abstract class Manager {
     /**
      * Call a custom driver creator.
      *
-     * @param  string $driver
+     * @param string $driver
      * @return mixed
      */
     protected function callCustomCreator( $driver ) {
@@ -115,7 +116,8 @@ abstract class Manager {
     /**
      * Register a custom driver creator Closure.
      *
-     * @param  string $driver
+     * @param string   $driver
+     * @param \Closure $callback
      * @return $this
      */
     public function extend( $driver, Closure $callback ) {
@@ -145,6 +147,7 @@ abstract class Manager {
     /**
      * Set the container instance used by the manager.
      *
+     * @param \Hybrid\Contracts\Container\Container $container
      * @return $this
      */
     public function setContainer( Container $container ) {
@@ -167,8 +170,8 @@ abstract class Manager {
     /**
      * Dynamically call the default driver instance.
      *
-     * @param  string $method
-     * @param  array  $parameters
+     * @param string $method
+     * @param array  $parameters
      * @return mixed
      */
     public function __call( $method, $parameters ) {

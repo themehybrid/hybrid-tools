@@ -18,9 +18,11 @@ trait Macroable {
     /**
      * Register a custom macro.
      *
-     * @param  string          $name
-     * @param  object|callable $macro
+     * @param string          $name
+     * @param object|callable $macro
      * @return void
+     *
+     * @param-closure-this static  $macro
      */
     public static function macro( $name, $macro ) {
         static::$macros[ $name ] = $macro;
@@ -29,8 +31,8 @@ trait Macroable {
     /**
      * Mix another object into the class.
      *
-     * @param  object $mixin
-     * @param  bool   $replace
+     * @param object $mixin
+     * @param bool   $replace
      * @return void
      * @throws \ReflectionException
      */
@@ -41,7 +43,6 @@ trait Macroable {
 
         foreach ( $methods as $method ) {
             if ( $replace || ! static::hasMacro( $method->name ) ) {
-                $method->setAccessible( true );
                 static::macro( $method->name, $method->invoke( $mixin ) );
             }
         }
@@ -50,7 +51,7 @@ trait Macroable {
     /**
      * Checks if macro is registered.
      *
-     * @param  string $name
+     * @param string $name
      * @return bool
      */
     public static function hasMacro( $name ) {
@@ -69,16 +70,16 @@ trait Macroable {
     /**
      * Dynamically handle calls to the class.
      *
-     * @param  string $method
-     * @param  array  $parameters
+     * @param string $method
+     * @param array  $parameters
      * @return mixed
      * @throws \BadMethodCallException
      */
     public static function __callStatic( $method, $parameters ) {
         if ( ! static::hasMacro( $method ) ) {
-            throw new \BadMethodCallException(sprintf(
+            throw new \BadMethodCallException( sprintf(
                 'Method %s::%s does not exist.', static::class, $method
-            ));
+            ) );
         }
 
         $macro = static::$macros[ $method ];
@@ -93,16 +94,16 @@ trait Macroable {
     /**
      * Dynamically handle calls to the class.
      *
-     * @param  string $method
-     * @param  array  $parameters
+     * @param string $method
+     * @param array  $parameters
      * @return mixed
      * @throws \BadMethodCallException
      */
     public function __call( $method, $parameters ) {
         if ( ! static::hasMacro( $method ) ) {
-            throw new \BadMethodCallException(sprintf(
+            throw new \BadMethodCallException( sprintf(
                 'Method %s::%s does not exist.', static::class, $method
-            ));
+            ) );
         }
 
         $macro = static::$macros[ $method ];
