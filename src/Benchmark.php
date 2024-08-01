@@ -14,14 +14,14 @@ class Benchmark {
      */
     public static function measure( Closure|array $benchmarkables, int $iterations = 1 ): array|float {
         return collect( Arr::wrap( $benchmarkables ) )->map( static fn( $callback ) => collect( range( 1, $iterations ) )->map( static function () use ( $callback ) {
-                gc_collect_cycles();
+            gc_collect_cycles();
 
-                $start = hrtime( true );
+            $start = hrtime( true );
 
-                $callback();
+            $callback();
 
-                return ( hrtime( true ) - $start ) / 1000000;
-            } )->average() )->when(
+            return ( hrtime( true ) - $start ) / 1000000;
+        } )->average() )->when(
             $benchmarkables instanceof Closure,
             static fn( $c ) => $c->first(),
             static fn( $c ) => $c->all()
