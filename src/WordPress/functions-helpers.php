@@ -67,3 +67,16 @@ if ( ! function_exists( __NAMESPACE__ . '\\get_child_theme_file_uri' ) ) {
         return apply_filters( 'hybrid/tools/wordpress/child_theme_file_uri', $url, $file );
     }
 }
+
+if ( ! function_exists( __NAMESPACE__ . '\\wp_context' ) ) {
+    /**
+     * Retrieves the singleton instance of WPContext.
+     *
+     * Provides a convenient global helper to access the current WordPress context.
+     *
+     * @return \Hybrid\Tools\WordPress\WPContext The current WPContext instance.
+     */
+    function wp_context(): WPContext {
+        return WPContext::getInstance();
+    }
+}
