@@ -3,7 +3,6 @@
 namespace Hybrid\Tools;
 
 class HigherOrderWhenProxy {
-
     /**
      * The target being conditionally operated on.
      *
@@ -36,7 +35,6 @@ class HigherOrderWhenProxy {
      * Create a new proxy instance.
      *
      * @param mixed $target
-     * @return void
      */
     public function __construct( $target ) {
         $this->target = $target;
@@ -46,6 +44,7 @@ class HigherOrderWhenProxy {
      * Set the condition on the proxy.
      *
      * @param bool $condition
+     *
      * @return $this
      */
     public function condition( $condition ) {
@@ -69,6 +68,7 @@ class HigherOrderWhenProxy {
      * Proxy accessing an attribute onto the target.
      *
      * @param string $key
+     *
      * @return mixed
      */
     public function __get( $key ) {
@@ -88,6 +88,7 @@ class HigherOrderWhenProxy {
      *
      * @param string $method
      * @param array  $parameters
+     *
      * @return mixed
      */
     public function __call( $method, $parameters ) {
@@ -101,5 +102,4 @@ class HigherOrderWhenProxy {
             ? $this->target->{$method}( ...$parameters )
             : $this->target;
     }
-
 }

@@ -81,7 +81,6 @@ use Carbon\Factory;
  * @method \Hybrid\Tools\Carbon yesterday($tz = null)
  */
 class DateFactory {
-
     /**
      * The default class that will be used for all created dates.
      */
@@ -112,7 +111,9 @@ class DateFactory {
      * Use the given handler when generating dates (class name, callable, or factory).
      *
      * @param mixed $handler
+     *
      * @return mixed
+     *
      * @throws \InvalidArgumentException
      */
     public static function use( $handler ) {
@@ -146,6 +147,7 @@ class DateFactory {
      * Execute the given callable on each date creation.
      *
      * @param callable $callable
+     *
      * @return void
      */
     public static function useCallable( callable $callable ) {
@@ -159,6 +161,7 @@ class DateFactory {
      * Use the given date type (class) when generating dates.
      *
      * @param string $dateClass
+     *
      * @return void
      */
     public static function useClass( $dateClass ) {
@@ -172,6 +175,7 @@ class DateFactory {
      * Use the given Carbon factory when generating dates.
      *
      * @param object $factory
+     *
      * @return void
      */
     public static function useFactory( $factory ) {
@@ -186,7 +190,9 @@ class DateFactory {
      *
      * @param string $method
      * @param array  $parameters
+     *
      * @return mixed
+     *
      * @throws \RuntimeException
      */
     public function __call( $method, $parameters ) {
@@ -221,5 +227,4 @@ class DateFactory {
         // Otherwise, assume the configured class has a DateTime compatible constructor...
         return new $dateClass( $date->format( 'Y-m-d H:i:s.u' ), $date->getTimezone() );
     }
-
 }

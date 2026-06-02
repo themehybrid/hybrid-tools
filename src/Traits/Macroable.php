@@ -2,12 +2,14 @@
 
 namespace Hybrid\Tools\Traits;
 
+use BadMethodCallException;
 use Closure;
 use ReflectionClass;
 use ReflectionMethod;
+use RuntimeException;
+use Throwable;
 
 trait Macroable {
-
     /**
      * The registered string macros.
      *
@@ -20,9 +22,10 @@ trait Macroable {
      *
      * @param string          $name
      * @param object|callable $macro
-     * @return void
      *
      * @param-closure-this static  $macro
+     *
+     * @return void
      */
     public static function macro( $name, $macro ) {
         static::$macros[ $name ] = $macro;
@@ -33,7 +36,9 @@ trait Macroable {
      *
      * @param object $mixin
      * @param bool   $replace
+     *
      * @return void
+     *
      * @throws \ReflectionException
      */
     public static function mixin( $mixin, $replace = true ) {
@@ -52,6 +57,7 @@ trait Macroable {
      * Checks if macro is registered.
      *
      * @param string $name
+     *
      * @return bool
      */
     public static function hasMacro( $name ) {
@@ -72,12 +78,14 @@ trait Macroable {
      *
      * @param string $method
      * @param array  $parameters
+     *
      * @return mixed
+     *
      * @throws \BadMethodCallException
      */
     public static function __callStatic( $method, $parameters ) {
         if ( ! static::hasMacro( $method ) ) {
-            throw new \BadMethodCallException( sprintf(
+            throw new BadMethodCallException( sprintf(
                 'Method %s::%s does not exist.', static::class, $method
             ) );
         }
@@ -96,12 +104,14 @@ trait Macroable {
      *
      * @param string $method
      * @param array  $parameters
+     *
      * @return mixed
+     *
      * @throws \BadMethodCallException
      */
     public function __call( $method, $parameters ) {
         if ( ! static::hasMacro( $method ) ) {
-            throw new \BadMethodCallException( sprintf(
+            throw new BadMethodCallException( sprintf(
                 'Method %s::%s does not exist.', static::class, $method
             ) );
         }
@@ -109,10 +119,13 @@ trait Macroable {
         $macro = static::$macros[ $method ];
 
         if ( $macro instanceof Closure ) {
-            $macro = $macro->bindTo( $this, static::class );
+            try {
+                $macro = $macro->bindTo( $this, static::class ) ?? throw new RuntimeException;
+            } catch ( Throwable ) {
+                $macro = $macro->bindTo( null, static::class );
+            }
         }
 
         return $macro( ...$parameters );
     }
-
 }

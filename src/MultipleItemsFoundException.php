@@ -3,7 +3,6 @@
 namespace Hybrid\Tools;
 
 class MultipleItemsFoundException extends \RuntimeException {
-
     /**
      * The number of items found.
      *
@@ -17,6 +16,7 @@ class MultipleItemsFoundException extends \RuntimeException {
      * @param int             $count
      * @param int             $code
      * @param \Throwable|null $previous
+     *
      * @return void
      */
     public function __construct( $count, $code = 0, $previous = null ) {
@@ -33,5 +33,4 @@ class MultipleItemsFoundException extends \RuntimeException {
     public function getCount() {
         return $this->count;
     }
-
 }

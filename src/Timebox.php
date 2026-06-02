@@ -2,8 +2,9 @@
 
 namespace Hybrid\Tools;
 
-class Timebox {
+use Throwable;
 
+class Timebox {
     /**
      * Indicates if the timebox is allowed to return early.
      *
@@ -14,12 +15,14 @@ class Timebox {
     /**
      * Invoke the given callback within the specified timebox minimum.
      *
+     * @template TCallReturnType
+     *
      * @param (callable( $this): TCallReturnType) $callback
      * @param int        $microseconds
-     * @return TCallReturnType
-     * @throws \Throwable
      *
-     * @template TCallReturnType
+     * @return TCallReturnType
+     *
+     * @throws \Throwable
      */
     public function call( callable $callback, int $microseconds ) {
         $exception = null;
@@ -28,11 +31,11 @@ class Timebox {
 
         try {
             $result = $callback( $this );
-        } catch ( \Throwable $caught ) {
+        } catch ( Throwable $caught ) {
             $exception = $caught;
         }
 
-        $remainder = intval( $microseconds - ( ( microtime( true ) - $start ) * 1000000 ) );
+        $remainder = (int) ( $microseconds - ( ( microtime( true ) - $start ) * 1000000 ) );
 
         if ( ! $this->earlyReturn && 0 < $remainder ) {
             $this->usleep( $remainder );
@@ -71,10 +74,10 @@ class Timebox {
      * Sleep for the specified number of microseconds.
      *
      * @param int $microseconds
+     *
      * @return void
      */
     protected function usleep( int $microseconds ) {
         Sleep::usleep( $microseconds );
     }
-
 }

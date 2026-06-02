@@ -6,7 +6,6 @@ use Hybrid\Contracts\Htmlable;
 use Stringable;
 
 class HtmlString implements Htmlable, Stringable {
-
     /**
      * The HTML string.
      *
@@ -18,7 +17,6 @@ class HtmlString implements Htmlable, Stringable {
      * Create a new HTML string instance.
      *
      * @param string $html
-     * @return void
      */
     public function __construct( $html = '' ) {
         $this->html = $html;
@@ -39,7 +37,7 @@ class HtmlString implements Htmlable, Stringable {
      * @return bool
      */
     public function isEmpty() {
-        return '' === $this->html;
+        return '' === ( $this->html ?? '' );
     }
 
     /**
@@ -57,7 +55,6 @@ class HtmlString implements Htmlable, Stringable {
      * @return string
      */
     public function __toString() {
-        return $this->toHtml();
+        return $this->toHtml() ?? '';
     }
-
 }

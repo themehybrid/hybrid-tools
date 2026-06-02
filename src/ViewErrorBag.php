@@ -10,7 +10,6 @@ use Stringable;
  * @mixin \Hybrid\Contracts\MessageBag
  */
 class ViewErrorBag implements Countable, Stringable {
-
     /**
      * The array of the view error bags.
      *
@@ -22,6 +21,7 @@ class ViewErrorBag implements Countable, Stringable {
      * Checks if a named MessageBag exists in the bags.
      *
      * @param string $key
+     *
      * @return bool
      */
     public function hasBag( $key = 'default' ) {
@@ -32,10 +32,11 @@ class ViewErrorBag implements Countable, Stringable {
      * Get a MessageBag instance from the bags.
      *
      * @param string $key
+     *
      * @return \Hybrid\Contracts\MessageBag
      */
     public function getBag( $key ) {
-        return Arr::get( $this->bags, $key ) ?: new MessageBag();
+        return Arr::get( $this->bags, $key ) ?: new MessageBag;
     }
 
     /**
@@ -52,6 +53,7 @@ class ViewErrorBag implements Countable, Stringable {
      *
      * @param string                       $key
      * @param \Hybrid\Contracts\MessageBag $bag
+     *
      * @return $this
      */
     public function put( $key, MessageBagContract $bag ) {
@@ -81,6 +83,7 @@ class ViewErrorBag implements Countable, Stringable {
      *
      * @param string $method
      * @param array  $parameters
+     *
      * @return mixed
      */
     public function __call( $method, $parameters ) {
@@ -91,6 +94,7 @@ class ViewErrorBag implements Countable, Stringable {
      * Dynamically access a view error bag.
      *
      * @param string $key
+     *
      * @return \Hybrid\Contracts\MessageBag
      */
     public function __get( $key ) {
@@ -102,6 +106,7 @@ class ViewErrorBag implements Countable, Stringable {
      *
      * @param string                       $key
      * @param \Hybrid\Contracts\MessageBag $value
+     *
      * @return void
      */
     public function __set( $key, $value ) {
@@ -116,5 +121,4 @@ class ViewErrorBag implements Countable, Stringable {
     public function __toString() {
         return (string) $this->getBag( 'default' );
     }
-
 }

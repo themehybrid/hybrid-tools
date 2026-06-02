@@ -3,7 +3,6 @@
 namespace Hybrid\Tools;
 
 class HigherOrderTapProxy {
-
     /**
      * The target being tapped.
      *
@@ -15,6 +14,7 @@ class HigherOrderTapProxy {
      * Create a new tap proxy instance.
      *
      * @param mixed $target
+     *
      * @return void
      */
     public function __construct( $target ) {
@@ -26,6 +26,7 @@ class HigherOrderTapProxy {
      *
      * @param string $method
      * @param array  $parameters
+     *
      * @return mixed
      */
     public function __call( $method, $parameters ) {
@@ -33,5 +34,4 @@ class HigherOrderTapProxy {
 
         return $this->target;
     }
-
 }

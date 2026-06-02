@@ -5,7 +5,9 @@ namespace Hybrid\Tools\Config;
 use ArrayAccess;
 use Hybrid\Contracts\Config\Repository as ConfigContract;
 use Hybrid\Tools\Arr;
+use Hybrid\Tools\Collection;
 use Hybrid\Tools\Traits\Macroable;
+use InvalidArgumentException;
 
 class Repository implements ArrayAccess, ConfigContract {
 
@@ -22,7 +24,6 @@ class Repository implements ArrayAccess, ConfigContract {
      * Create a new configuration repository.
      *
      * @param array $items
-     * @return void
      */
     public function __construct( array $items = [] ) {
         $this->items = $items;
@@ -32,6 +33,7 @@ class Repository implements ArrayAccess, ConfigContract {
      * Determine if the given configuration value exists.
      *
      * @param string $key
+     *
      * @return bool
      */
     public function has( $key ) {
@@ -43,6 +45,7 @@ class Repository implements ArrayAccess, ConfigContract {
      *
      * @param array|string $key
      * @param mixed        $default
+     *
      * @return mixed
      */
     public function get( $key, $default = null ) {
@@ -57,6 +60,7 @@ class Repository implements ArrayAccess, ConfigContract {
      * Get many configuration values.
      *
      * @param array $keys
+     *
      * @return array
      */
     public function getMany( $keys ) {
@@ -78,12 +82,14 @@ class Repository implements ArrayAccess, ConfigContract {
      *
      * @param string                                 $key
      * @param (\Closure():(string|null))|string|null $default
+     *
+     * @throws \InvalidArgumentException
      */
     public function string( string $key, $default = null ): string {
         $value = $this->get( $key, $default );
 
         if ( ! is_string( $value ) ) {
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 sprintf( 'Configuration value for key [%s] must be a string, %s given.', $key, gettype( $value ) )
             );
         }
@@ -96,12 +102,14 @@ class Repository implements ArrayAccess, ConfigContract {
      *
      * @param string                           $key
      * @param (\Closure():(int|null))|int|null $default
+     *
+     * @throws \InvalidArgumentException
      */
     public function integer( string $key, $default = null ): int {
         $value = $this->get( $key, $default );
 
         if ( ! is_int( $value ) ) {
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 sprintf( 'Configuration value for key [%s] must be an integer, %s given.', $key, gettype( $value ) )
             );
         }
@@ -114,12 +122,14 @@ class Repository implements ArrayAccess, ConfigContract {
      *
      * @param string                               $key
      * @param (\Closure():(float|null))|float|null $default
+     *
+     * @throws \InvalidArgumentException
      */
     public function float( string $key, $default = null ): float {
         $value = $this->get( $key, $default );
 
         if ( ! is_float( $value ) ) {
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 sprintf( 'Configuration value for key [%s] must be a float, %s given.', $key, gettype( $value ) )
             );
         }
@@ -132,12 +142,14 @@ class Repository implements ArrayAccess, ConfigContract {
      *
      * @param string                             $key
      * @param (\Closure():(bool|null))|bool|null $default
+     *
+     * @throws \InvalidArgumentException
      */
     public function boolean( string $key, $default = null ): bool {
         $value = $this->get( $key, $default );
 
         if ( ! is_bool( $value ) ) {
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 sprintf( 'Configuration value for key [%s] must be a boolean, %s given.', $key, gettype( $value ) )
             );
         }
@@ -150,13 +162,16 @@ class Repository implements ArrayAccess, ConfigContract {
      *
      * @param string                                                                   $key
      * @param (\Closure():(array<array-key, mixed>|null))|array<array-key, mixed>|null $default
+     *
      * @return array<array-key, mixed>
+     *
+     * @throws \InvalidArgumentException
      */
     public function array( string $key, $default = null ): array {
         $value = $this->get( $key, $default );
 
         if ( ! is_array( $value ) ) {
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 sprintf( 'Configuration value for key [%s] must be an array, %s given.', $key, gettype( $value ) )
             );
         }
@@ -165,10 +180,23 @@ class Repository implements ArrayAccess, ConfigContract {
     }
 
     /**
+     * Get the specified array configuration value as a collection.
+     *
+     * @param string                                                                   $key
+     * @param (\Closure():(array<array-key, mixed>|null))|array<array-key, mixed>|null $default
+     *
+     * @return Collection<array-key, mixed>
+     */
+    public function collection( string $key, $default = null ): Collection {
+        return new Collection( $this->array( $key, $default ) );
+    }
+
+    /**
      * Set a given configuration value.
      *
      * @param array|string $key
      * @param mixed        $value
+     *
      * @return void
      */
     public function set( $key, $value = null ) {
@@ -184,6 +212,7 @@ class Repository implements ArrayAccess, ConfigContract {
      *
      * @param string $key
      * @param mixed  $value
+     *
      * @return void
      */
     public function prepend( $key, $value ) {
@@ -199,6 +228,7 @@ class Repository implements ArrayAccess, ConfigContract {
      *
      * @param string $key
      * @param mixed  $value
+     *
      * @return void
      */
     public function push( $key, $value ) {
@@ -254,5 +284,4 @@ class Repository implements ArrayAccess, ConfigContract {
     public function offsetUnset( $key ): void {
         $this->set( $key, null );
     }
-
 }
