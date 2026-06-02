@@ -4,25 +4,23 @@ namespace Hybrid\Tools;
 
 use ArrayAccess;
 use ArrayIterator;
-use BackedEnum;
 use Hybrid\Contracts\CanBeEscapedWhenCastToString;
 use Hybrid\Tools\Traits\EnumeratesValues;
 use Hybrid\Tools\Traits\Macroable;
+use InvalidArgumentException;
 use stdClass;
-use Stringable;
 use Traversable;
 
 /**
  * @template TKey of array-key
+ *
  * @template-covariant TValue
+ *
  * @implements \ArrayAccess<TKey, TValue>
  * @implements \Hybrid\Tools\Enumerable<TKey, TValue>
  */
 class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerable {
 
-    /**
-     * @use \Hybrid\Tools\Traits\EnumeratesValues<TKey, TValue>
-     */
     use EnumeratesValues;
     use Macroable;
 
@@ -37,7 +35,6 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Create a new collection.
      *
      * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue>|null $items
-     * @return void
      */
     public function __construct( $items = [] ) {
         $this->items = $this->getArrayableItems( $items );
@@ -48,10 +45,12 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param int $from
      * @param int $to
+     * @param int $step
+     *
      * @return static<int, int>
      */
-    public static function range( $from, $to ) {
-        return new static( range( $from, $to ) );
+    public static function range( $from, $to, $step = 1 ) {
+        return new static( range( $from, $to, $step ) );
     }
 
     /**
@@ -76,11 +75,12 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Get the median of a given key.
      *
      * @param string|array<array-key, string>|null $key
+     *
      * @return float|int|null
      */
     public function median( $key = null ) {
         $values = ( isset( $key ) ? $this->pluck( $key ) : $this )
-            ->filter( static fn( $item ) => ! is_null( $item ) )
+            ->reject( fn( $item ) => is_null( $item ) )
             ->sort()->values();
 
         $count = $values->count();
@@ -89,7 +89,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
             return;
         }
 
-        $middle = (int) ( $count / 2 );
+        $middle = intdiv( $count, 2 );
 
         if ( $count % 2 ) {
             return $values->get( $middle );
@@ -105,6 +105,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Get the mode of a given key.
      *
      * @param string|array<array-key, string>|null $key
+     *
      * @return array<int, float|int>|null
      */
     public function mode( $key = null ) {
@@ -114,15 +115,15 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
 
         $collection = isset( $key ) ? $this->pluck( $key ) : $this;
 
-        $counts = new static();
+        $counts = new static;
 
-        $collection->each( static fn( $value ) => $counts[ $value ] = isset( $counts[ $value ] ) ? $counts[ $value ] + 1 : 1 );
+        $collection->each( fn( $value ) => $counts[ $value ] = isset( $counts[ $value ] ) ? $counts[ $value ] + 1 : 1 );
 
         $sorted = $counts->sort();
 
         $highestValue = $sorted->last();
 
-        return $sorted->filter( static fn( $value ) => $value == $highestValue )
+        return $sorted->filter( fn( $value ) => $value == $highestValue )
             ->sort()->keys()->all();
     }
 
@@ -136,19 +137,47 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     }
 
     /**
+     * Collapse the collection of items into a single array while preserving its keys.
+     *
+     * @return static<mixed, mixed>
+     */
+    public function collapseWithKeys() {
+        if ( ! $this->items ) {
+            return new static;
+        }
+
+        $results = [];
+
+        foreach ( $this->items as $key => $values ) {
+            if ( $values instanceof Collection ) {
+                $values = $values->all();
+            } elseif ( ! is_array( $values ) ) {
+                continue;
+            }
+
+            $results[ $key ] = $values;
+        }
+
+        if ( ! $results ) {
+            return new static;
+        }
+
+        return new static( array_replace( ...$results ) );
+    }
+
+    /**
      * Determine if an item exists in the collection.
      *
      * @param (callable(TValue, TKey): bool)|TValue|string $key
      * @param mixed                                        $operator
      * @param mixed                                        $value
+     *
      * @return bool
      */
     public function contains( $key, $operator = null, $value = null ) {
         if ( func_num_args() === 1 ) {
             if ( $this->useAsCallable( $key ) ) {
-                $placeholder = new stdClass();
-
-                return $this->first( $key, $placeholder ) !== $placeholder;
+                return array_any( $this->items, $key );
             }
 
             return in_array( $key, $this->items );
@@ -162,11 +191,12 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param (callable(TValue): bool)|TValue|array-key $key
      * @param TValue|null                               $value
+     *
      * @return bool
      */
     public function containsStrict( $key, $value = null ) {
         if ( func_num_args() === 2 ) {
-            return $this->contains( static fn( $item ) => data_get( $item, $key ) === $value );
+            return $this->contains( fn( $item ) => data_get( $item, $key ) === $value );
         }
 
         if ( $this->useAsCallable( $key ) ) {
@@ -182,6 +212,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * @param mixed $key
      * @param mixed $operator
      * @param mixed $value
+     *
      * @return bool
      */
     public function doesntContain( $key, $operator = null, $value = null ) {
@@ -189,17 +220,31 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     }
 
     /**
-     * Cross join with the given lists, returning all possible permutations.
+     * Determine if an item is not contained in the enumerable, using strict comparison.
      *
-     * @param \Hybrid\Contracts\Arrayable<TCrossJoinKey, TCrossJoinValue>|iterable<TCrossJoinKey, TCrossJoinValue> ...$lists
-     * @return static<int, array<int, TValue|TCrossJoinValue>>
+     * @param mixed $key
+     * @param mixed $operator
+     * @param mixed $value
+     *
+     * @return bool
+     */
+    public function doesntContainStrict( $key, $operator = null, $value = null ) {
+        return ! $this->containsStrict( ...func_get_args() );
+    }
+
+    /**
+     * Cross join with the given lists, returning all possible permutations.
      *
      * @template TCrossJoinKey
      * @template TCrossJoinValue
+     *
+     * @param \Hybrid\Contracts\Arrayable<TCrossJoinKey, TCrossJoinValue>|iterable<TCrossJoinKey, TCrossJoinValue> ...$lists
+     *
+     * @return static<int, array<int, TValue|TCrossJoinValue>>
      */
     public function crossJoin( ...$lists ) {
         return new static( Arr::crossJoin(
-            $this->items, ...array_map( [ $this, 'getArrayableItems' ], $lists )
+            $this->items, ...array_map( $this->getArrayableItems( ...), $lists )
         ) );
     }
 
@@ -207,6 +252,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Get the items in the collection that are not present in the given items.
      *
      * @param \Hybrid\Contracts\Arrayable<array-key, TValue>|iterable<array-key, TValue> $items
+     *
      * @return static
      */
     public function diff( $items ) {
@@ -218,6 +264,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param \Hybrid\Contracts\Arrayable<array-key, TValue>|iterable<array-key, TValue> $items
      * @param callable(TValue, TValue): int                                              $callback
+     *
      * @return static
      */
     public function diffUsing( $items, callable $callback ) {
@@ -228,6 +275,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Get the items in the collection whose keys and values are not present in the given items.
      *
      * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
+     *
      * @return static
      */
     public function diffAssoc( $items ) {
@@ -239,6 +287,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
      * @param callable(TKey, TKey): int                                        $callback
+     *
      * @return static
      */
     public function diffAssocUsing( $items, callable $callback ) {
@@ -249,6 +298,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Get the items in the collection whose keys are not present in the given items.
      *
      * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
+     *
      * @return static
      */
     public function diffKeys( $items ) {
@@ -260,6 +310,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
      * @param callable(TKey, TKey): int                                        $callback
+     *
      * @return static
      */
     public function diffKeysUsing( $items, callable $callback ) {
@@ -269,8 +320,11 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     /**
      * Retrieve duplicate items from the collection.
      *
-     * @param (callable(TValue): bool)|string|null $callback
-     * @param bool                                 $strict
+     * @template TMapValue
+     *
+     * @param (callable(TValue): TMapValue)|string|null $callback
+     * @param bool                                      $strict
+     *
      * @return static
      */
     public function duplicates( $callback = null, $strict = false ) {
@@ -280,7 +334,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
 
         $compare = $this->duplicateComparator( $strict );
 
-        $duplicates = new static();
+        $duplicates = new static;
 
         foreach ( $items as $key => $value ) {
             if ( $uniqueItems->isNotEmpty() && $compare( $value, $uniqueItems->first() ) ) {
@@ -296,7 +350,10 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     /**
      * Retrieve duplicate items from the collection using strict comparison.
      *
-     * @param (callable(TValue): bool)|string|null $callback
+     * @template TMapValue
+     *
+     * @param (callable(TValue): TMapValue)|string|null $callback
+     *
      * @return static
      */
     public function duplicatesStrict( $callback = null ) {
@@ -307,20 +364,22 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Get the comparison function to detect duplicates.
      *
      * @param bool $strict
+     *
      * @return callable(TValue, TValue): bool
      */
     protected function duplicateComparator( $strict ) {
         if ( $strict ) {
-            return static fn( $a, $b ) => $a === $b;
+            return fn( $a, $b ) => $a === $b;
         }
 
-        return static fn( $a, $b ) => $a == $b;
+        return fn( $a, $b ) => $a == $b;
     }
 
     /**
      * Get all items except for those with the specified keys.
      *
      * @param \Hybrid\Tools\Enumerable<array-key, TKey>|array<array-key, TKey>|string $keys
+     *
      * @return static
      */
     public function except( $keys ) {
@@ -341,6 +400,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Run a filter over each of the items.
      *
      * @param (callable(TValue, TKey): bool)|null $callback
+     *
      * @return static
      */
     public function filter( ?callable $callback = null ) {
@@ -354,11 +414,12 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     /**
      * Get the first item from the collection passing the given truth test.
      *
+     * @template TFirstDefault
+     *
      * @param (callable(TValue, TKey): bool)|null       $callback
      * @param TFirstDefault|(\Closure(): TFirstDefault) $default
-     * @return TValue|TFirstDefault
      *
-     * @template TFirstDefault
+     * @return TValue|TFirstDefault
      */
     public function first( ?callable $callback = null, $default = null ) {
         return Arr::first( $this->items, $callback, $default );
@@ -368,6 +429,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Get a flattened array of the items in the collection.
      *
      * @param int $depth
+     *
      * @return static<int, mixed>
      */
     public function flatten( $depth = INF ) {
@@ -387,6 +449,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Remove an item from the collection by key.
      *
      * @param \Hybrid\Contracts\Arrayable<array-key, TValue>|iterable<array-key, TKey>|TKey $keys
+     *
      * @return $this
      */
     public function forget( $keys ) {
@@ -400,13 +463,16 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     /**
      * Get an item from the collection by key.
      *
+     * @template TGetDefault
+     *
      * @param TKey                                  $key
      * @param TGetDefault|(\Closure(): TGetDefault) $default
-     * @return TValue|TGetDefault
      *
-     * @template TGetDefault
+     * @return TValue|TGetDefault
      */
     public function get( $key, $default = null ) {
+        $key ??= '';
+
         if ( array_key_exists( $key, $this->items ) ) {
             return $this->items[ $key ];
         }
@@ -417,15 +483,16 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     /**
      * Get an item from the collection by key or add it to collection if it does not exist.
      *
+     * @template TGetOrPutValue
+     *
      * @param mixed                                       $key
      * @param TGetOrPutValue|(\Closure(): TGetOrPutValue) $value
-     * @return TValue|TGetOrPutValue
      *
-     * @template TGetOrPutValue
+     * @return TValue|TGetOrPutValue
      */
     public function getOrPut( $key, $value ) {
-        if ( array_key_exists( $key, $this->items ) ) {
-            return $this->items[ $key ];
+        if ( array_key_exists( $key ?? '', $this->items ) ) {
+            return $this->items[ $key ?? '' ];
         }
 
         $this->offsetSet( $key, $value = value( $value ) );
@@ -436,9 +503,17 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     /**
      * Group an associative array by a field or using a callback.
      *
-     * @param (callable(TValue, TKey): array-key)|array|string $groupBy
+     * @template TGroupKey of array-key|\UnitEnum|\Stringable
+     *
+     * @param (callable(TValue, TKey): TGroupKey)|array|string $groupBy
      * @param bool                                             $preserveKeys
-     * @return static<array-key, static<array-key, TValue>>
+     *
+     * @return static<
+     * ($groupBy is (array|string)
+     * ? array-key
+     * : (TGroupKey is \UnitEnum ? array-key : (TGroupKey is \Stringable ? string : TGroupKey))),
+     * static<($preserveKeys is true ? TKey : int), ($groupBy is array ? mixed : TValue)>
+     * >
      */
     public function groupBy( $groupBy, $preserveKeys = false ) {
         if ( ! $this->useAsCallable( $groupBy ) && is_array( $groupBy ) ) {
@@ -461,13 +536,14 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
             foreach ( $groupKeys as $groupKey ) {
                 $groupKey = match ( true ) {
                     is_bool( $groupKey ) => (int) $groupKey,
-                    $groupKey instanceof BackedEnum => $groupKey->value,
-                    $groupKey instanceof Stringable => (string) $groupKey,
+                    $groupKey instanceof \UnitEnum => enum_value( $groupKey ),
+                    $groupKey instanceof \Stringable,
+                    is_null( $groupKey ) => (string) $groupKey,
                     default => $groupKey,
                 };
 
                 if ( ! array_key_exists( $groupKey, $results ) ) {
-                    $results[ $groupKey ] = new static();
+                    $results[ $groupKey ] = new static;
                 }
 
                 $results[ $groupKey ]->offsetSet( $preserveKeys ? $key : null, $value );
@@ -486,8 +562,11 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     /**
      * Key an associative array by a field or using a callback.
      *
-     * @param (callable(TValue, TKey): array-key)|array|string $keyBy
-     * @return static<array-key, TValue>
+     * @template TNewKey of array-key|\UnitEnum
+     *
+     * @param (callable(TValue, TKey): TNewKey)|array|string $keyBy
+     *
+     * @return static<($keyBy is (array|string) ? array-key : (TNewKey is \UnitEnum ? array-key : TNewKey)), TValue>
      */
     public function keyBy( $keyBy ) {
         $keyBy = $this->valueRetriever( $keyBy );
@@ -496,6 +575,10 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
 
         foreach ( $this->items as $key => $item ) {
             $resolvedKey = $keyBy( $item, $key );
+
+            if ( $resolvedKey instanceof \UnitEnum ) {
+                $resolvedKey = enum_value( $resolvedKey );
+            }
 
             if ( is_object( $resolvedKey ) ) {
                 $resolvedKey = (string) $resolvedKey;
@@ -511,24 +594,20 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Determine if an item exists in the collection by key.
      *
      * @param TKey|array<array-key, TKey> $key
+     *
      * @return bool
      */
     public function has( $key ) {
         $keys = is_array( $key ) ? $key : func_get_args();
 
-        foreach ( $keys as $value ) {
-            if ( ! array_key_exists( $value, $this->items ) ) {
-                return false;
-            }
-        }
-
-        return true;
+        return array_all( $keys, fn( $key ) => array_key_exists( $key ?? '', $this->items ) );
     }
 
     /**
      * Determine if any of the keys exist in the collection.
      *
      * @param mixed $key
+     *
      * @return bool
      */
     public function hasAny( $key ) {
@@ -538,13 +617,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
 
         $keys = is_array( $key ) ? $key : func_get_args();
 
-        foreach ( $keys as $value ) {
-            if ( $this->has( $value ) ) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any( $keys, fn( $key ) => array_key_exists( $key ?? '', $this->items ) );
     }
 
     /**
@@ -552,6 +625,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param callable|string $value
      * @param string|null     $glue
+     *
      * @return string
      */
     public function implode( $value, $glue = null ) {
@@ -572,6 +646,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Intersect the collection with the given items.
      *
      * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
+     *
      * @return static
      */
     public function intersect( $items ) {
@@ -583,6 +658,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param \Hybrid\Contracts\Arrayable<array-key, TValue>|iterable<array-key, TValue> $items
      * @param callable(TValue, TValue): int                                              $callback
+     *
      * @return static
      */
     public function intersectUsing( $items, callable $callback ) {
@@ -593,6 +669,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Intersect the collection with the given items with additional index check.
      *
      * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
+     *
      * @return static
      */
     public function intersectAssoc( $items ) {
@@ -604,6 +681,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param \Hybrid\Contracts\Arrayable<array-key, TValue>|iterable<array-key, TValue> $items
      * @param callable(TValue, TValue): int                                              $callback
+     *
      * @return static
      */
     public function intersectAssocUsing( $items, callable $callback ) {
@@ -614,6 +692,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Intersect the collection with the given items by key.
      *
      * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
+     *
      * @return static
      */
     public function intersectByKeys( $items ) {
@@ -628,20 +707,35 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * @return bool
      *
      * @phpstan-assert-if-true null $this->first()
+     * @phpstan-assert-if-true null $this->last()
      *
      * @phpstan-assert-if-false TValue $this->first()
+     * @phpstan-assert-if-false TValue $this->last()
      */
     public function isEmpty() {
         return empty( $this->items );
     }
 
     /**
-     * Determine if the collection contains a single item.
+     * Determine if the collection contains exactly one item. If a callback is provided, determine if exactly one item matches the condition.
      *
-     * @return bool
+     * @param (callable(TValue, TKey): bool)|null $callback
+     *
+     * @deprecated 12.49.0 Use the `hasSole()` method instead.
      */
-    public function containsOneItem() {
-        return $this->count() === 1;
+    public function containsOneItem( ?callable $callback = null ): bool {
+        return $this->hasSole( $callback );
+    }
+
+    /**
+     * Determine if the collection contains multiple items.
+     *
+     * @param (callable(TValue, TKey): bool)|null $callback
+     *
+     * @deprecated 12.50.0 Use the `hasMany()` method instead.
+     */
+    public function containsManyItems( ?callable $callback = null ): bool {
+        return $this->hasMany( $callback );
     }
 
     /**
@@ -649,7 +743,8 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param string $glue
      * @param string $finalGlue
-     * @return string
+     *
+     * @return TValue|string
      */
     public function join( $glue, $finalGlue = '' ) {
         if ( '' === $finalGlue ) {
@@ -685,11 +780,12 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     /**
      * Get the last item from the collection.
      *
+     * @template TLastDefault
+     *
      * @param (callable(TValue, TKey): bool)|null     $callback
      * @param TLastDefault|(\Closure(): TLastDefault) $default
-     * @return TValue|TLastDefault
      *
-     * @template TLastDefault
+     * @return TValue|TLastDefault
      */
     public function last( ?callable $callback = null, $default = null ) {
         return Arr::last( $this->items, $callback, $default );
@@ -700,6 +796,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param string|int|array<array-key, string>|null $value
      * @param string|null                              $key
+     *
      * @return static<array-key, mixed>
      */
     public function pluck( $value, $key = null ) {
@@ -709,10 +806,11 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     /**
      * Run a map over each of the items.
      *
-     * @param callable(TValue, TKey): TMapValue $callback
-     * @return static<TKey, TMapValue>
-     *
      * @template TMapValue
+     *
+     * @param callable(TValue, TKey): TMapValue $callback
+     *
+     * @return static<TKey, TMapValue>
      */
     public function map( callable $callback ) {
         return new static( Arr::map( $this->items, $callback ) );
@@ -723,11 +821,12 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * The callback should return an associative array with a single key/value pair.
      *
-     * @param callable(TValue, TKey): array<TMapToDictionaryKey, TMapToDictionaryValue> $callback
-     * @return static<TMapToDictionaryKey, array<int, TMapToDictionaryValue>>
-     *
      * @template TMapToDictionaryKey of array-key
      * @template TMapToDictionaryValue
+     *
+     * @param callable(TValue, TKey): array<TMapToDictionaryKey, TMapToDictionaryValue> $callback
+     *
+     * @return static<TMapToDictionaryKey, array<int, TMapToDictionaryValue>>
      */
     public function mapToDictionary( callable $callback ) {
         $dictionary = [];
@@ -754,11 +853,12 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * The callback should return an associative array with a single key/value pair.
      *
-     * @param callable(TValue, TKey): array<TMapWithKeysKey, TMapWithKeysValue> $callback
-     * @return static<TMapWithKeysKey, TMapWithKeysValue>
-     *
      * @template TMapWithKeysKey of array-key
      * @template TMapWithKeysValue
+     *
+     * @param callable(TValue, TKey): array<TMapWithKeysKey, TMapWithKeysValue> $callback
+     *
+     * @return static<TMapWithKeysKey, TMapWithKeysValue>
      */
     public function mapWithKeys( callable $callback ) {
         return new static( Arr::mapWithKeys( $this->items, $callback ) );
@@ -767,8 +867,11 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     /**
      * Merge the collection with the given items.
      *
-     * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
-     * @return static
+     * @template TMergeValue
+     *
+     * @param \Hybrid\Contracts\Arrayable<TKey, TMergeValue>|iterable<TKey, TMergeValue> $items
+     *
+     * @return static<TKey, TValue|TMergeValue>
      */
     public function merge( $items ) {
         return new static( array_merge( $this->items, $this->getArrayableItems( $items ) ) );
@@ -777,10 +880,11 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     /**
      * Recursively merge the collection with the given items.
      *
-     * @param \Hybrid\Contracts\Arrayable<TKey, TMergeRecursiveValue>|iterable<TKey, TMergeRecursiveValue> $items
-     * @return static<TKey, TValue|TMergeRecursiveValue>
-     *
      * @template TMergeRecursiveValue
+     *
+     * @param \Hybrid\Contracts\Arrayable<TKey, TMergeRecursiveValue>|iterable<TKey, TMergeRecursiveValue> $items
+     *
+     * @return static<TKey, TValue|TMergeRecursiveValue>
      */
     public function mergeRecursive( $items ) {
         return new static( array_merge_recursive( $this->items, $this->getArrayableItems( $items ) ) );
@@ -790,10 +894,11 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Multiply the items in the collection by the multiplier.
      *
      * @param int $multiplier
+     *
      * @return static
      */
     public function multiply( int $multiplier ) {
-        $new = new static();
+        $new = new static;
 
         for ( $i = 0; $i < $multiplier; $i++ ) {
             $new->push( ...$this->items );
@@ -805,10 +910,11 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     /**
      * Create a collection by using this collection for keys and another for its values.
      *
-     * @param \Hybrid\Contracts\Arrayable<array-key, TCombineValue>|iterable<array-key, TCombineValue> $values
-     * @return static<TValue, TCombineValue>
-     *
      * @template TCombineValue
+     *
+     * @param \Hybrid\Contracts\Arrayable<array-key, TCombineValue>|iterable<array-key, TCombineValue> $values
+     *
+     * @return static<TValue, TCombineValue>
      */
     public function combine( $values ) {
         return new static( array_combine( $this->all(), $this->getArrayableItems( $values ) ) );
@@ -818,6 +924,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Union the collection with the given items.
      *
      * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
+     *
      * @return static
      */
     public function union( $items ) {
@@ -829,9 +936,16 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param int $step
      * @param int $offset
-     * @return static
+     *
+     * @return ($step is positive-int ? static : never)
+     *
+     * @throws \InvalidArgumentException
      */
     public function nth( $step, $offset = 0 ) {
+        if ( 1 > $step ) {
+            throw new InvalidArgumentException( 'Step value must be at least 1.' );
+        }
+
         $new = [];
 
         $position = 0;
@@ -841,7 +955,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
                 $new[] = $item;
             }
 
-            ++$position;
+            $position++;
         }
 
         return new static( $new );
@@ -851,6 +965,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Get the items with the specified keys.
      *
      * @param \Hybrid\Tools\Enumerable<array-key, TKey>|array<array-key, TKey>|string|null $keys
+     *
      * @return static
      */
     public function only( $keys ) {
@@ -871,6 +986,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Select specific values from the items within the collection.
      *
      * @param \Hybrid\Tools\Enumerable<array-key, TKey>|array<array-key, TKey>|string|null $keys
+     *
      * @return static
      */
     public function select( $keys ) {
@@ -891,15 +1007,20 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Get and remove the last N items from the collection.
      *
      * @param int $count
-     * @return static<int, TValue>|TValue|null
+     *
+     * @return ($count is 1 ? TValue|null : static<int, TValue>)
      */
     public function pop( $count = 1 ) {
+        if ( 1 > $count ) {
+            return new static;
+        }
+
         if ( 1 === $count ) {
             return array_pop( $this->items );
         }
 
         if ( $this->isEmpty() ) {
-            return new static();
+            return new static;
         }
 
         $results = [];
@@ -907,7 +1028,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
         $collectionCount = $this->count();
 
         foreach ( range( 1, min( $count, $collectionCount ) ) as $item ) {
-            array_push( $results, array_pop( $this->items ) );
+            $results[] = array_pop( $this->items );
         }
 
         return new static( $results );
@@ -918,10 +1039,11 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param TValue $value
      * @param TKey   $key
+     *
      * @return $this
      */
     public function prepend( $value, $key = null ) {
-        $this->items = Arr::prepend( $this->items, ...func_get_args() );
+        $this->items = Arr::prepend( $this->items, ...( func_num_args() > 1 ? func_get_args() : [ $value ] ) );
 
         return $this;
     }
@@ -930,6 +1052,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Push one or more items onto the end of the collection.
      *
      * @param TValue ...$values
+     *
      * @return $this
      */
     public function push( ...$values ) {
@@ -944,6 +1067,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Prepend one or more items to the beginning of the collection.
      *
      * @param TValue ...$values
+     *
      * @return $this
      */
     public function unshift( ...$values ) {
@@ -955,11 +1079,12 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     /**
      * Push all of the given items onto the collection.
      *
-     * @param iterable<TConcatKey, TConcatValue> $source
-     * @return static<TKey|TConcatKey, TValue|TConcatValue>
-     *
      * @template TConcatKey of array-key
      * @template TConcatValue
+     *
+     * @param iterable<TConcatKey, TConcatValue> $source
+     *
+     * @return static<TKey|TConcatKey, TValue|TConcatValue>
      */
     public function concat( $source ) {
         $result = new static( $this );
@@ -974,11 +1099,12 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     /**
      * Get and remove an item from the collection.
      *
+     * @template TPullDefault
+     *
      * @param TKey                                    $key
      * @param TPullDefault|(\Closure(): TPullDefault) $default
-     * @return TValue|TPullDefault
      *
-     * @template TPullDefault
+     * @return TValue|TPullDefault
      */
     public function pull( $key, $default = null ) {
         return Arr::pull( $this->items, $key, $default );
@@ -989,6 +1115,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param TKey   $key
      * @param TValue $value
+     *
      * @return $this
      */
     public function put( $key, $value ) {
@@ -1002,7 +1129,9 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param (callable(self<TKey, TValue>): int)|int|null $number
      * @param bool                                         $preserveKeys
-     * @return static<int, TValue>|TValue
+     *
+     * @return ($number is null ? TValue : static<int, TValue>)
+     *
      * @throws \InvalidArgumentException
      */
     public function random( $number = null, $preserveKeys = false ) {
@@ -1021,6 +1150,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Replace the collection items with the given items.
      *
      * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
+     *
      * @return static
      */
     public function replace( $items ) {
@@ -1031,6 +1161,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Recursively replace the collection items with the given items.
      *
      * @param \Hybrid\Contracts\Arrayable<TKey, TValue>|iterable<TKey, TValue> $items
+     *
      * @return static
      */
     public function replaceRecursive( $items ) {
@@ -1051,6 +1182,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param TValue|(callable(TValue,TKey): bool) $value
      * @param bool                                 $strict
+     *
      * @return TKey|false
      */
     public function search( $value, $strict = false ) {
@@ -1058,13 +1190,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
             return array_search( $value, $this->items, $strict );
         }
 
-        foreach ( $this->items as $key => $item ) {
-            if ( $value( $item, $key ) ) {
-                return $key;
-            }
-        }
-
-        return false;
+        return array_find_key( $this->items, $value ) ?? false;
     }
 
     /**
@@ -1072,6 +1198,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param TValue|(callable(TValue,TKey): bool) $value
      * @param bool                                 $strict
+     *
      * @return TValue|null
      */
     public function before( $value, $strict = false ) {
@@ -1095,6 +1222,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param TValue|(callable(TValue,TKey): bool) $value
      * @param bool                                 $strict
+     *
      * @return TValue|null
      */
     public function after( $value, $strict = false ) {
@@ -1117,12 +1245,14 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Get and remove the first N items from the collection.
      *
      * @param int $count
-     * @return static<int, TValue>|TValue|null
+     *
+     * @return ($count is 1 ? TValue|null : static<int, TValue>)
+     *
      * @throws \InvalidArgumentException
      */
     public function shift( $count = 1 ) {
         if ( 0 > $count ) {
-            throw new \InvalidArgumentException( 'Number of shifted items may not be less than zero.' );
+            throw new InvalidArgumentException( 'Number of shifted items may not be less than zero.' );
         }
 
         if ( $this->isEmpty() ) {
@@ -1130,7 +1260,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
         }
 
         if ( 0 === $count ) {
-            return new static();
+            return new static;
         }
 
         if ( 1 === $count ) {
@@ -1142,7 +1272,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
         $collectionCount = $this->count();
 
         foreach ( range( 1, min( $count, $collectionCount ) ) as $item ) {
-            array_push( $results, array_shift( $this->items ) );
+            $results[] = array_shift( $this->items );
         }
 
         return new static( $results );
@@ -1162,9 +1292,18 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param int $size
      * @param int $step
+     *
      * @return static<int, static>
+     *
+     * @throws \InvalidArgumentException
      */
     public function sliding( $size = 2, $step = 1 ) {
+        if ( 1 > $size ) {
+            throw new InvalidArgumentException( 'Size value must be at least 1.' );
+        } elseif ( 1 > $step ) {
+            throw new InvalidArgumentException( 'Step value must be at least 1.' );
+        }
+
         $chunks = floor( ( $this->count() - $size ) / $step ) + 1;
 
         return static::times( $chunks, fn( $number ) => $this->slice( ( $number - 1 ) * $step, $size ) );
@@ -1174,6 +1313,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Skip the first {$count} items.
      *
      * @param int $count
+     *
      * @return static
      */
     public function skip( $count ) {
@@ -1184,6 +1324,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Skip items in the collection until the given condition is met.
      *
      * @param TValue|callable(TValue,TKey): bool $value
+     *
      * @return static
      */
     public function skipUntil( $value ) {
@@ -1194,6 +1335,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Skip items in the collection while the given condition is met.
      *
      * @param TValue|callable(TValue,TKey): bool $value
+     *
      * @return static
      */
     public function skipWhile( $value ) {
@@ -1205,6 +1347,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param int      $offset
      * @param int|null $length
+     *
      * @return static
      */
     public function slice( $offset, $length = null ) {
@@ -1215,14 +1358,21 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Split a collection into a certain number of groups.
      *
      * @param int $numberOfGroups
-     * @return static<int, static>
+     *
+     * @return ($numberOfGroups is positive-int ? static<int, static> : never)
+     *
+     * @throws \InvalidArgumentException
      */
     public function split( $numberOfGroups ) {
-        if ( $this->isEmpty() ) {
-            return new static();
+        if ( 1 > $numberOfGroups ) {
+            throw new InvalidArgumentException( 'Number of groups must be at least 1.' );
         }
 
-        $groups = new static();
+        if ( $this->isEmpty() ) {
+            return new static;
+        }
+
+        $groups = new static;
 
         $groupSize = floor( $this->count() / $numberOfGroups );
 
@@ -1234,7 +1384,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
             $size = $groupSize;
 
             if ( $i < $remain ) {
-                ++$size;
+                $size++;
             }
 
             if ( $size ) {
@@ -1251,9 +1401,16 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Split a collection into a certain number of groups, and fill the first groups completely.
      *
      * @param int $numberOfGroups
-     * @return static<int, static>
+     *
+     * @return ($numberOfGroups is positive-int ? static<int, static> : never)
+     *
+     * @throws \InvalidArgumentException
      */
     public function splitIn( $numberOfGroups ) {
+        if ( 1 > $numberOfGroups ) {
+            throw new InvalidArgumentException( 'Number of groups must be at least 1.' );
+        }
+
         return $this->chunk( (int) ceil( $this->count() / $numberOfGroups ) );
     }
 
@@ -1263,7 +1420,9 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * @param (callable(TValue, TKey): bool)|string $key
      * @param mixed                                 $operator
      * @param mixed                                 $value
+     *
      * @return TValue
+     *
      * @throws \Hybrid\Tools\ItemNotFoundException
      * @throws \Hybrid\Tools\MultipleItemsFoundException
      */
@@ -1277,14 +1436,32 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
         $count = $items->count();
 
         if ( 0 === $count ) {
-            throw new \Hybrid\Tools\ItemNotFoundException();
+            throw new ItemNotFoundException;
         }
 
         if ( 1 < $count ) {
-            throw new \Hybrid\Tools\MultipleItemsFoundException( $count );
+            throw new MultipleItemsFoundException( $count );
         }
 
         return $items->first();
+    }
+
+    /**
+     * Determine if the collection contains a single item, optionally matching the given criteria.
+     *
+     * @param (callable(TValue, TKey): bool)|string|null $key
+     * @param mixed                                      $operator
+     * @param mixed                                      $value
+     */
+    public function hasSole( $key = null, $operator = null, $value = null ): bool {
+        $filter = func_num_args() > 1
+            ? $this->operatorForWhere( ...func_get_args() )
+            : $key;
+
+        return $this
+            ->unless( null == $filter )
+            ->filter( $filter )
+            ->count() === 1;
     }
 
     /**
@@ -1293,7 +1470,9 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * @param (callable(TValue, TKey): bool)|string $key
      * @param mixed                                 $operator
      * @param mixed                                 $value
+     *
      * @return TValue
+     *
      * @throws \Hybrid\Tools\ItemNotFoundException
      */
     public function firstOrFail( $key = null, $operator = null, $value = null ) {
@@ -1301,12 +1480,12 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
             ? $this->operatorForWhere( ...func_get_args() )
             : $key;
 
-        $placeholder = new stdClass();
+        $placeholder = new stdClass;
 
         $item = $this->first( $filter, $placeholder );
 
         if ( $item === $placeholder ) {
-            throw new \Hybrid\Tools\ItemNotFoundException();
+            throw new ItemNotFoundException;
         }
 
         return $item;
@@ -1315,17 +1494,19 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     /**
      * Chunk the collection into chunks of the given size.
      *
-     * @param int $size
-     * @return static<int, static>
+     * @param int  $size
+     * @param bool $preserveKeys
+     *
+     * @return ($preserveKeys is true ? static<int, static> : static<int, static<int, TValue>>)
      */
-    public function chunk( $size ) {
+    public function chunk( $size, $preserveKeys = true ) {
         if ( 0 >= $size ) {
-            return new static();
+            return new static;
         }
 
         $chunks = [];
 
-        foreach ( array_chunk( $this->items, $size, true ) as $chunk ) {
+        foreach ( array_chunk( $this->items, $size, $preserveKeys ) as $chunk ) {
             $chunks[] = new static( $chunk );
         }
 
@@ -1336,7 +1517,8 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Chunk the collection into chunks with a callback.
      *
      * @param callable(TValue, TKey, static<int, TValue>): bool $callback
-     * @return static<int, static<int, TValue>>
+     *
+     * @return static<int, static<TKey, TValue>>
      */
     public function chunkWhile( callable $callback ) {
         return new static(
@@ -1348,6 +1530,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Sort through each item with a callback.
      *
      * @param callable(TValue, TValue): int|int|null $callback
+     *
      * @return static
      */
     public function sort( $callback = null ) {
@@ -1364,6 +1547,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Sort items in descending order.
      *
      * @param int $options
+     *
      * @return static
      */
     public function sortDesc( $options = SORT_REGULAR ) {
@@ -1380,6 +1564,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * @param array<array-key, (callable(TValue, TValue): mixed)|(callable(TValue, TKey): mixed)|string|array{string, string}>|(callable(TValue, TKey): mixed)|string $callback
      * @param int                                                                                                                                                     $options
      * @param bool                                                                                                                                                    $descending
+     *
      * @return static
      */
     public function sortBy( $callback, $options = SORT_REGULAR, $descending = false ) {
@@ -1416,12 +1601,13 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param array<array-key, (callable(TValue, TValue): mixed)|(callable(TValue, TKey): mixed)|string|array{string, string}> $comparisons
      * @param int                                                                                                              $options
+     *
      * @return static
      */
     protected function sortByMany( array $comparisons = [], int $options = SORT_REGULAR ) {
         $items = $this->items;
 
-        uasort( $items, static function ( $a, $b ) use ( $comparisons, $options ) {
+        uasort( $items, function ( $a, $b ) use ( $comparisons, $options ) {
             foreach ( $comparisons as $comparison ) {
                 $comparison = Arr::wrap( $comparison );
 
@@ -1445,9 +1631,9 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
                             : strcasecmp( $values[0], $values[1] );
                     } else {
                         $result = match ( $options ) {
-                            SORT_NUMERIC => intval( $values[0] ) <=> intval( $values[1] ),
+                            SORT_NUMERIC => (int) $values[0] <=> (int) $values[1],
                             SORT_STRING => strcmp( $values[0], $values[1] ),
-                            SORT_NATURAL => strnatcmp( $values[0], $values[1] ),
+                            SORT_NATURAL => strnatcmp( (string) $values[0], (string) $values[1] ),
                             SORT_LOCALE_STRING => strcoll( $values[0], $values[1] ),
                             default => $values[0] <=> $values[1],
                         };
@@ -1470,6 +1656,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param array<array-key, (callable(TValue, TValue): mixed)|(callable(TValue, TKey): mixed)|string|array{string, string}>|(callable(TValue, TKey): mixed)|string $callback
      * @param int                                                                                                                                                     $options
+     *
      * @return static
      */
     public function sortByDesc( $callback, $options = SORT_REGULAR ) {
@@ -1491,6 +1678,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param int  $options
      * @param bool $descending
+     *
      * @return static
      */
     public function sortKeys( $options = SORT_REGULAR, $descending = false ) {
@@ -1505,6 +1693,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Sort the collection keys in descending order.
      *
      * @param int $options
+     *
      * @return static
      */
     public function sortKeysDesc( $options = SORT_REGULAR ) {
@@ -1515,6 +1704,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Sort the collection keys using a callback.
      *
      * @param callable(TKey, TKey): int $callback
+     *
      * @return static
      */
     public function sortKeysUsing( callable $callback ) {
@@ -1531,6 +1721,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * @param int                      $offset
      * @param int|null                 $length
      * @param array<array-key, TValue> $replacement
+     *
      * @return static
      */
     public function splice( $offset, $length = null, $replacement = [] ) {
@@ -1545,6 +1736,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Take the first or last {$limit} items.
      *
      * @param int $limit
+     *
      * @return static
      */
     public function take( $limit ) {
@@ -1559,6 +1751,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Take items in the collection until the given condition is met.
      *
      * @param TValue|callable(TValue,TKey): bool $value
+     *
      * @return static
      */
     public function takeUntil( $value ) {
@@ -1569,6 +1762,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Take items in the collection while the given condition is met.
      *
      * @param TValue|callable(TValue,TKey): bool $value
+     *
      * @return static
      */
     public function takeWhile( $value ) {
@@ -1578,8 +1772,13 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     /**
      * Transform each item in the collection using a callback.
      *
-     * @param callable(TValue, TKey): TValue $callback
+     * @template TMapValue
+     *
+     * @param callable(TValue, TKey): TMapValue $callback
+     *
      * @return $this
+     *
+     * @phpstan-this-out static<TKey, TMapValue>
      */
     public function transform( callable $callback ) {
         $this->items = $this->map( $callback )->all();
@@ -1590,10 +1789,12 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     /**
      * Flatten a multi-dimensional associative array with dots.
      *
+     * @param int $depth
+     *
      * @return static
      */
-    public function dot() {
-        return new static( Arr::dot( $this->all() ) );
+    public function dot( $depth = INF ) {
+        return new static( Arr::dot( $this->all(), '', $depth ) );
     }
 
     /**
@@ -1610,6 +1811,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param (callable(TValue, TKey): mixed)|string|null $key
      * @param bool                                        $strict
+     *
      * @return static
      */
     public function unique( $key = null, $strict = false ) {
@@ -1621,7 +1823,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
 
         $exists = [];
 
-        return $this->reject( static function ( $item, $key ) use ( $callback, $strict, &$exists ) {
+        return $this->reject( function ( $item, $key ) use ( $callback, $strict, &$exists ) {
             if ( in_array( $id = $callback( $item, $key ), $exists, $strict ) ) {
                 return true;
             }
@@ -1645,15 +1847,16 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * e.g. new Collection([1, 2, 3])->zip([4, 5, 6]);
      *      => [[1, 4], [2, 5], [3, 6]]
      *
-     * @param \Hybrid\Contracts\Arrayable<array-key, TZipValue>|iterable<array-key, TZipValue> ...$items
-     * @return static<int, static<int, TValue|TZipValue>>
-     *
      * @template TZipValue
+     *
+     * @param \Hybrid\Contracts\Arrayable<array-key, TZipValue>|iterable<array-key, TZipValue> ...$items
+     *
+     * @return static<int, static<int, TValue|TZipValue>>
      */
     public function zip( $items ) {
         $arrayableItems = array_map( fn( $items ) => $this->getArrayableItems( $items ), func_get_args() );
 
-        $params = array_merge( [ static fn() => new static( func_get_args() ), $this->items ], $arrayableItems );
+        $params = array_merge( [ fn() => new static( func_get_args() ), $this->items ], $arrayableItems );
 
         return new static( array_map( ...$params ) );
     }
@@ -1661,11 +1864,12 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
     /**
      * Pad collection to the specified length with a value.
      *
+     * @template TPadValue
+     *
      * @param int       $size
      * @param TPadValue $value
-     * @return static<int, TValue|TPadValue>
      *
-     * @template TPadValue
+     * @return static<int, TValue|TPadValue>
      */
     public function pad( $size, $value ) {
         return new static( array_pad( $this->items, $size, $value ) );
@@ -1682,6 +1886,8 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
 
     /**
      * Count the number of items in the collection.
+     *
+     * @return int<0, max>
      */
     public function count(): int {
         return count( $this->items );
@@ -1691,6 +1897,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Count the number of items in the collection by a field or using a callback.
      *
      * @param (callable(TValue, TKey): array-key)|string|null $countBy
+     *
      * @return static<array-key, int>
      */
     public function countBy( $countBy = null ) {
@@ -1702,6 +1909,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      *
      * @param TValue $item
      * @param mixed  $value Deprecated: This parameter will be removed in a future release.
+     *
      * @return $this
      */
     public function add( $item, $value = null ) {
@@ -1740,6 +1948,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Get an item at a given offset.
      *
      * @param TKey $key
+     *
      * @return TValue
      */
     public function offsetGet( $key ): mixed {
@@ -1773,7 +1982,9 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      * Remove an item from the collection by key.
      *
      * @param \Hybrid\Contracts\Arrayable<array-key, TValue>|iterable<array-key, TKey>|TKey $keys
+     *
      * @return $this
+     *
      * @deprecated Use forget() instead.
      */
     public function remove( $keys ) {
@@ -1783,5 +1994,4 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
 
         return $this;
     }
-
 }

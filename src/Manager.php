@@ -4,9 +4,9 @@ namespace Hybrid\Tools;
 
 use Closure;
 use Hybrid\Contracts\Container\Container;
+use InvalidArgumentException;
 
 abstract class Manager {
-
     /**
      * The container instance.
      *
@@ -39,7 +39,6 @@ abstract class Manager {
      * Create a new manager instance.
      *
      * @param \Hybrid\Contracts\Container\Container $container
-     * @return void
      */
     public function __construct( Container $container ) {
         $this->container = $container;
@@ -57,14 +56,16 @@ abstract class Manager {
      * Get a driver instance.
      *
      * @param string|null $driver
+     *
      * @return mixed
+     *
      * @throws \InvalidArgumentException
      */
     public function driver( $driver = null ) {
         $driver = $driver ?: $this->getDefaultDriver();
 
         if ( is_null( $driver ) ) {
-            throw new \InvalidArgumentException( sprintf(
+            throw new InvalidArgumentException( sprintf(
                 'Unable to resolve NULL driver for [%s].', static::class
             ) );
         }
@@ -72,18 +73,16 @@ abstract class Manager {
         // If the given driver has not been created before, we will create the instances
         // here and cache it so we can return it next time very quickly. If there is
         // already a driver created by this name, we'll just return that instance.
-        if ( ! isset( $this->drivers[ $driver ] ) ) {
-            $this->drivers[ $driver ] = $this->createDriver( $driver );
-        }
-
-        return $this->drivers[ $driver ];
+        return $this->drivers[ $driver ] ??= $this->createDriver( $driver );
     }
 
     /**
      * Create a new driver instance.
      *
      * @param string $driver
+     *
      * @return mixed
+     *
      * @throws \InvalidArgumentException
      */
     protected function createDriver( $driver ) {
@@ -100,13 +99,14 @@ abstract class Manager {
             return $this->$method();
         }
 
-        throw new \InvalidArgumentException( "Driver [$driver] not supported." );
+        throw new InvalidArgumentException( "Driver [$driver] not supported." );
     }
 
     /**
      * Call a custom driver creator.
      *
      * @param string $driver
+     *
      * @return mixed
      */
     protected function callCustomCreator( $driver ) {
@@ -118,6 +118,7 @@ abstract class Manager {
      *
      * @param string   $driver
      * @param \Closure $callback
+     *
      * @return $this
      */
     public function extend( $driver, Closure $callback ) {
@@ -148,6 +149,7 @@ abstract class Manager {
      * Set the container instance used by the manager.
      *
      * @param \Hybrid\Contracts\Container\Container $container
+     *
      * @return $this
      */
     public function setContainer( Container $container ) {
@@ -172,10 +174,10 @@ abstract class Manager {
      *
      * @param string $method
      * @param array  $parameters
+     *
      * @return mixed
      */
     public function __call( $method, $parameters ) {
         return $this->driver()->$method( ...$parameters );
     }
-
 }

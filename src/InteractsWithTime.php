@@ -7,11 +7,11 @@ use DateInterval;
 use DateTimeInterface;
 
 trait InteractsWithTime {
-
     /**
      * Get the number of seconds until the given DateTime.
      *
      * @param \DateTimeInterface|\DateInterval|int $delay
+     *
      * @return int
      */
     protected function secondsUntil( $delay ) {
@@ -26,6 +26,7 @@ trait InteractsWithTime {
      * Get the "available at" UNIX timestamp.
      *
      * @param \DateTimeInterface|\DateInterval|int $delay
+     *
      * @return int
      */
     protected function availableAt( $delay = 0 ) {
@@ -33,13 +34,14 @@ trait InteractsWithTime {
 
         return $delay instanceof DateTimeInterface
                             ? $delay->getTimestamp()
-                            : Carbon::now()->addRealSeconds( $delay )->getTimestamp();
+            : Carbon::now()->addSeconds( $delay )->getTimestamp();
     }
 
     /**
      * If the given value is an interval, convert it to a DateTime instance.
      *
      * @param \DateTimeInterface|\DateInterval|int $delay
+     *
      * @return \DateTimeInterface|int
      */
     protected function parseDateInterval( $delay ) {
@@ -64,6 +66,7 @@ trait InteractsWithTime {
      *
      * @param float $startTime
      * @param float $endTime
+     *
      * @return string
      */
     protected function runTimeForHumans( $startTime, $endTime = null ) {
@@ -75,5 +78,4 @@ trait InteractsWithTime {
             ? CarbonInterval::milliseconds( $runTime )->cascade()->forHumans( short: true )
             : number_format( $runTime, 2 ) . 'ms';
     }
-
 }

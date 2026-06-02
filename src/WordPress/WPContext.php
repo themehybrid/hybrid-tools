@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Manages the WordPress execution context.
  *
@@ -86,7 +87,7 @@ class WPContext implements JsonSerializable {
      */
     public static function getInstance(): self {
         if ( is_null( self::$instance ) ) {
-            self::$instance = ( new self() )->determine();
+            self::$instance = ( new self )->determine();
         }
 
         return self::$instance;
@@ -189,7 +190,7 @@ class WPContext implements JsonSerializable {
          * consequences for us in any case.
          */
         if ( empty( $GLOBALS['wp_rewrite'] ) ) {
-            $GLOBALS['wp_rewrite'] = new WP_Rewrite();
+            $GLOBALS['wp_rewrite'] = new WP_Rewrite;
         }
 
         $currentUrl  = (string) parse_url( (string) add_query_arg( [] ), PHP_URL_PATH );
@@ -429,5 +430,4 @@ class WPContext implements JsonSerializable {
 
         return false;
     }
-
 }

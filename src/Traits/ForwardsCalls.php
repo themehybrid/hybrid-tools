@@ -3,14 +3,15 @@
 namespace Hybrid\Tools\Traits;
 
 trait ForwardsCalls {
-
     /**
      * Forward a method call to the given object.
      *
      * @param mixed  $object
      * @param string $method
      * @param array  $parameters
+     *
      * @return mixed
+     *
      * @throws \BadMethodCallException
      */
     protected function forwardCallTo( $object, $method, $parameters ) {
@@ -37,7 +38,9 @@ trait ForwardsCalls {
      * @param mixed  $object
      * @param string $method
      * @param array  $parameters
+     *
      * @return mixed
+     *
      * @throws \BadMethodCallException
      */
     protected function forwardDecoratedCallTo( $object, $method, $parameters ) {
@@ -50,7 +53,9 @@ trait ForwardsCalls {
      * Throw a bad method call exception for the given method.
      *
      * @param string $method
+     *
      * @return void
+     *
      * @throws \BadMethodCallException
      */
     protected static function throwBadMethodCallException( $method ) {
@@ -58,5 +63,4 @@ trait ForwardsCalls {
             'Call to undefined method %s::%s()', static::class, $method
         ) );
     }
-
 }

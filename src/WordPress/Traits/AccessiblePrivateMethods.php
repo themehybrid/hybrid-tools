@@ -37,7 +37,6 @@ namespace Hybrid\Tools\WordPress\Traits;
  * @see https://github.com/woocommerce/woocommerce/blob/f73b8a80f6d47a871bed01d8d288cf29e0ab5bfe/plugins/woocommerce/src/Internal/Traits/AccessiblePrivateMethods.php#L39
  */
 trait AccessiblePrivateMethods {
-
     /**
      * List of instance methods marked as externally accessible.
      *
@@ -117,6 +116,7 @@ trait AccessiblePrivateMethods {
      * Register a private or protected instance method of this class as externally accessible.
      *
      * @param string $method_name Method name.
+     *
      * @return bool True if the method has been marked as externally accessible, false if the method doesn't exist.
      */
     protected function mark_method_as_accessible( string $method_name ): bool {
@@ -135,6 +135,7 @@ trait AccessiblePrivateMethods {
      * Register a private or protected static method of this class as externally accessible.
      *
      * @param string $method_name Method name.
+     *
      * @return bool True if the method has been marked as externally accessible, false if the method doesn't exist.
      */
     protected static function mark_static_method_as_accessible( string $method_name ): bool {
@@ -152,7 +153,9 @@ trait AccessiblePrivateMethods {
      *
      * @param string $name Called method name.
      * @param array  $arguments Called method arguments.
+     *
      * @return mixed
+     *
      * @throws \Error The called instance method doesn't exist or is private/protected and not marked as externally accessible.
      */
     public function __call( $name, $arguments ) {
@@ -176,7 +179,9 @@ trait AccessiblePrivateMethods {
      *
      * @param string $name Called method name.
      * @param array  $arguments Called method arguments.
+     *
      * @return mixed
+     *
      * @throws \Error The called static method doesn't exist or is private/protected and not marked as externally accessible.
      */
     public static function __callStatic( $name, $arguments ) {
@@ -200,5 +205,4 @@ trait AccessiblePrivateMethods {
 
         throw new \Error( 'Call to undefined method ' . __CLASS__ . '::' . $name );
     }
-
 }

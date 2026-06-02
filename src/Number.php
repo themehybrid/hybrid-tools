@@ -4,6 +4,7 @@ namespace Hybrid\Tools;
 
 use Hybrid\Tools\Traits\Macroable;
 use NumberFormatter;
+use RuntimeException;
 
 class Number {
 
@@ -17,12 +18,20 @@ class Number {
     protected static $locale = 'en';
 
     /**
+     * The current default currency.
+     *
+     * @var string
+     */
+    protected static $currency = 'USD';
+
+    /**
      * Format the given number according to the current locale.
      *
      * @param int|float   $number
      * @param int|null    $precision
      * @param int|null    $maxPrecision
      * @param string|null $locale
+     *
      * @return string|false
      */
     public static function format(
@@ -45,12 +54,52 @@ class Number {
     }
 
     /**
+     * Parse the given string according to the specified format type.
+     *
+     * @param string      $string
+     * @param int|null    $type
+     * @param string|null $locale
+     */
+    public static function parse(
+        string $string,
+        ?int $type = NumberFormatter::TYPE_DOUBLE,
+        ?string $locale = null
+    ): int|float|false {
+        static::ensureIntlExtensionIsInstalled();
+
+        $formatter = new NumberFormatter( $locale ?? static::$locale, NumberFormatter::DECIMAL );
+
+        return $formatter->parse( $string, $type );
+    }
+
+    /**
+     * Parse a string into an integer according to the specified locale.
+     *
+     * @param string      $string
+     * @param string|null $locale
+     */
+    public static function parseInt( string $string, ?string $locale = null ): int|false {
+        return self::parse( $string, NumberFormatter::TYPE_INT32, $locale );
+    }
+
+    /**
+     * Parse a string into a float according to the specified locale.
+     *
+     * @param string      $string
+     * @param string|null $locale
+     */
+    public static function parseFloat( string $string, ?string $locale = null ): float|false {
+        return self::parse( $string, NumberFormatter::TYPE_DOUBLE, $locale );
+    }
+
+    /**
      * Spell out the given number in the given locale.
      *
      * @param int|float   $number
      * @param string|null $locale
      * @param int|null    $after
      * @param int|null    $until
+     *
      * @return string
      */
     public static function spell( int|float $number, ?string $locale = null, ?int $after = null, ?int $until = null ) {
@@ -74,6 +123,7 @@ class Number {
      *
      * @param int|float   $number
      * @param string|null $locale
+     *
      * @return string
      */
     public static function ordinal( int|float $number, ?string $locale = null ) {
@@ -85,12 +135,31 @@ class Number {
     }
 
     /**
+     * Spell out the given number in the given locale in ordinal form.
+     *
+     * @param int|float   $number
+     * @param string|null $locale
+     *
+     * @return string
+     */
+    public static function spellOrdinal( int|float $number, ?string $locale = null ) {
+        static::ensureIntlExtensionIsInstalled();
+
+        $formatter = new NumberFormatter( $locale ?? static::$locale, NumberFormatter::SPELLOUT );
+
+        $formatter->setTextAttribute( NumberFormatter::DEFAULT_RULESET, '%spellout-ordinal' );
+
+        return $formatter->format( $number );
+    }
+
+    /**
      * Convert the given number to its percentage equivalent.
      *
      * @param int|float   $number
      * @param int         $precision
      * @param int|null    $maxPrecision
      * @param string|null $locale
+     *
      * @return string|false
      */
     public static function percentage(
@@ -118,14 +187,20 @@ class Number {
      * @param int|float   $number
      * @param string      $in
      * @param string|null $locale
+     * @param int|null    $precision
+     *
      * @return string|false
      */
-    public static function currency( int|float $number, string $in = 'USD', ?string $locale = null ) {
+    public static function currency( int|float $number, string $in = '', ?string $locale = null, ?int $precision = null ) {
         static::ensureIntlExtensionIsInstalled();
 
         $formatter = new NumberFormatter( $locale ?? static::$locale, NumberFormatter::CURRENCY );
 
-        return $formatter->formatCurrency( $number, $in );
+        if ( ! is_null( $precision ) ) {
+            $formatter->setAttribute( NumberFormatter::FRACTION_DIGITS, $precision );
+        }
+
+        return $formatter->formatCurrency( $number, ! empty( $in ) ? $in : static::$currency );
     }
 
     /**
@@ -134,12 +209,15 @@ class Number {
      * @param int|float $bytes
      * @param int       $precision
      * @param int|null  $maxPrecision
+     *
      * @return string
      */
     public static function fileSize( int|float $bytes, int $precision = 0, ?int $maxPrecision = null ) {
         $units = [ 'B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB' ];
 
-        for ( $i = 0; 0.9 < ( $bytes / 1024 ) && ( count( $units ) - 1 > $i ); $i++ ) {
+        $unitCount = count( $units );
+
+        for ( $i = 0; 0.9 < ( $bytes / 1024 ) && ( $unitCount - 1 > $i ); $i++ ) {
             $bytes /= 1024;
         }
 
@@ -152,6 +230,7 @@ class Number {
      * @param int|float $number
      * @param int       $precision
      * @param int|null  $maxPrecision
+     *
      * @return bool|string
      */
     public static function abbreviate( int|float $number, int $precision = 0, ?int $maxPrecision = null ) {
@@ -165,6 +244,7 @@ class Number {
      * @param int       $precision
      * @param int|null  $maxPrecision
      * @param bool      $abbreviate
+     *
      * @return bool|string
      */
     public static function forHumans(
@@ -195,6 +275,7 @@ class Number {
      * @param int       $precision
      * @param int|null  $maxPrecision
      * @param array     $units
+     *
      * @return string|false
      */
     protected static function summarize(
@@ -214,7 +295,7 @@ class Number {
         }
 
         switch ( true ) {
-            case floatval( $number ) === 0.0:
+            case (float) $number === 0.0:
                 return 0 < $precision ? static::format( 0, $precision, $maxPrecision ) : '0';
             case 0 > $number:
                 return sprintf( '-%s', static::summarize( abs( $number ), $precision, $maxPrecision, $units ) );
@@ -235,6 +316,7 @@ class Number {
      * @param int|float $number
      * @param int|float $min
      * @param int|float $max
+     *
      * @return int|float
      */
     public static function clamp( int|float $number, int|float $min, int|float $max ) {
@@ -246,44 +328,87 @@ class Number {
      *
      * @param int|float $to
      * @param int|float $by
+     * @param int|float $start
      * @param int|float $offset
+     *
      * @return array
      */
-    public static function pairs( int|float $to, int|float $by, int|float $offset = 1 ) {
+    public static function pairs( int|float $to, int|float $by, int|float $start = 0, int|float $offset = 1 ) {
         $output = [];
 
-        for ( $lower = 0; $lower < $to; $lower += $by ) {
-            $upper = $lower + $by;
+        for ( $lower = $start; $lower < $to; $lower += $by ) {
+            $upper = $lower + $by - $offset;
 
             if ( $upper > $to ) {
                 $upper = $to;
             }
 
-            $output[] = [ $lower + $offset, $upper ];
+            $output[] = [ $lower, $upper ];
         }
 
         return $output;
     }
 
     /**
+     * Remove any trailing zero digits after the decimal point of the given number.
+     *
+     * @param int|float $number
+     *
+     * @return int|float
+     */
+    public static function trim( int|float $number ) {
+        return json_decode( json_encode( $number ) );
+    }
+
+    /**
      * Execute the given callback using the given locale.
      *
-     * @param string   $locale
-     * @param callable $callback
-     * @return mixed
+     * @template TReturn
+     *
+     * @param string              $locale
+     * @param callable(): TReturn $callback
+     *
+     * @return TReturn
      */
     public static function withLocale( string $locale, callable $callback ) {
         $previousLocale = static::$locale;
 
         static::useLocale( $locale );
 
-        return tap( $callback(), static fn() => static::useLocale( $previousLocale ) );
+        try {
+            return $callback();
+        } finally {
+            static::useLocale( $previousLocale );
+        }
+    }
+
+    /**
+     * Execute the given callback using the given currency.
+     *
+     * @template TReturn
+     *
+     * @param string              $currency
+     * @param callable(): TReturn $callback
+     *
+     * @return TReturn
+     */
+    public static function withCurrency( string $currency, callable $callback ) {
+        $previousCurrency = static::$currency;
+
+        static::useCurrency( $currency );
+
+        try {
+            return $callback();
+        } finally {
+            static::useCurrency( $previousCurrency );
+        }
     }
 
     /**
      * Set the default locale.
      *
      * @param string $locale
+     *
      * @return void
      */
     public static function useLocale( string $locale ) {
@@ -291,16 +416,46 @@ class Number {
     }
 
     /**
+     * Set the default currency.
+     *
+     * @param string $currency
+     *
+     * @return void
+     */
+    public static function useCurrency( string $currency ) {
+        static::$currency = $currency;
+    }
+
+    /**
+     * Get the default locale.
+     *
+     * @return string
+     */
+    public static function defaultLocale() {
+        return static::$locale;
+    }
+
+    /**
+     * Get the default currency.
+     *
+     * @return string
+     */
+    public static function defaultCurrency() {
+        return static::$currency;
+    }
+
+    /**
      * Ensure the "intl" PHP extension is installed.
      *
      * @return void
+     *
+     * @throws \RuntimeException
      */
     protected static function ensureIntlExtensionIsInstalled() {
         if ( ! extension_loaded( 'intl' ) ) {
             $method = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 2 )[1]['function'];
 
-            throw new \RuntimeException( 'The "intl" PHP extension is required to use the [' . $method . '] method.' );
+            throw new RuntimeException( 'The "intl" PHP extension is required to use the [' . $method . '] method.' );
         }
     }
-
 }

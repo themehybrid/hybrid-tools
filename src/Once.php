@@ -5,7 +5,6 @@ namespace Hybrid\Tools;
 use WeakMap;
 
 class Once {
-
     /**
      * The current globally used instance.
      *
@@ -22,6 +21,7 @@ class Once {
      * Create a new once instance.
      *
      * @param \WeakMap<object, array<string, mixed>> $values
+     *
      * @return void
      */
     protected function __construct( protected WeakMap $values ) {}
@@ -32,13 +32,14 @@ class Once {
      * @return static
      */
     public static function instance() {
-        return static::$instance ??= new static( new WeakMap() );
+        return static::$instance ??= new static( new WeakMap );
     }
 
     /**
      * Get the value of the given onceable.
      *
      * @param \Hybrid\Tools\Onceable $onceable
+     *
      * @return mixed
      */
     public function value( Onceable $onceable ) {
@@ -50,12 +51,12 @@ class Once {
 
         $hash = $onceable->hash;
 
-        if ( isset( $this->values[ $object ][ $hash ] ) ) {
-            return $this->values[ $object ][ $hash ];
-        }
-
         if ( ! isset( $this->values[ $object ] ) ) {
             $this->values[ $object ] = [];
+        }
+
+        if ( array_key_exists( $hash, $this->values[ $object ] ) ) {
+            return $this->values[ $object ][ $hash ];
         }
 
         return $this->values[ $object ][ $hash ] = call_user_func( $onceable->callable );
@@ -87,5 +88,4 @@ class Once {
     public static function flush() {
         static::$instance = null;
     }
-
 }

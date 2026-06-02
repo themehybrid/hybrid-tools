@@ -2,6 +2,8 @@
 
 namespace Hybrid\Tools;
 
-class ItemNotFoundException extends \RuntimeException {
+use RuntimeException;
+
+class ItemNotFoundException extends RuntimeException {
 
 }

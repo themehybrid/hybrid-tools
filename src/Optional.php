@@ -23,6 +23,7 @@ class Optional implements ArrayAccess {
      * Create a new optional instance.
      *
      * @param mixed $value
+     *
      * @return void
      */
     public function __construct( $value ) {
@@ -33,6 +34,7 @@ class Optional implements ArrayAccess {
      * Dynamically access a property on the underlying object.
      *
      * @param string $key
+     *
      * @return mixed
      */
     public function __get( $key ) {
@@ -45,6 +47,7 @@ class Optional implements ArrayAccess {
      * Dynamically check a property exists on the underlying object.
      *
      * @param mixed $name
+     *
      * @return bool
      */
     public function __isset( $name ) {
@@ -105,6 +108,7 @@ class Optional implements ArrayAccess {
      *
      * @param string $method
      * @param array  $parameters
+     *
      * @return mixed
      */
     public function __call( $method, $parameters ) {
@@ -116,5 +120,4 @@ class Optional implements ArrayAccess {
             return $this->value->{$method}( ...$parameters );
         }
     }
-
 }
