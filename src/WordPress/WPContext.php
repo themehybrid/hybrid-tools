@@ -62,7 +62,7 @@ class WPContext implements JsonSerializable {
         self::SITE_EDITOR,
     ];
 
-    /** @var array<value-of<self::ALL>, bool> Context state storage */
+    /** @var array<value-of<WPContext::ALL>, bool> Context state storage */
     private $data;
 
     /** @var array<string, callable> Registered action callbacks */
@@ -74,7 +74,7 @@ class WPContext implements JsonSerializable {
     /**
      * Constructor.
      *
-     * @param array<value-of<\Hybrid\Tools\WordPress\WPContext::ALL>, bool> $data Initial context values.
+     * @param array<value-of<WPContext::ALL>, bool> $data Initial context values.
      */
     public function __construct( array $data = [] ) {
         $this->data = empty( $data ) ? array_fill_keys( self::ALL, false ) : $data;
@@ -127,7 +127,10 @@ class WPContext implements JsonSerializable {
             $isBlockEditor = is_admin() && $screen->is_block_editor();
         }
 
-        $isSiteEditor = $this->isSiteEditorRequest();
+        // Guarded on $notInstalling: isSiteEditorRequest() can fall through to
+        // isRestRequest(), which calls get_option() and instantiates WP_Rewrite.
+        // Neither is safe while WordPress is installing.
+        $isSiteEditor = $notInstalling && $this->isSiteEditorRequest();
 
         $undetermined = $notInstalling && ! $isAdmin && ! $isCron && ! $isCli && ! $xmlRpc && ! $isAjax && ! $isBlockEditor && ! $isSiteEditor;
 
@@ -173,10 +176,8 @@ class WPContext implements JsonSerializable {
      */
     private function isRestRequest(): bool {
         /** @psalm-suppress RedundantCondition */
-        if (
-            ( defined( 'REST_REQUEST' ) && \REST_REQUEST )
-            || ( isset( $_GET['rest_route'] ) && (bool) $_GET['rest_route'] ) // phpcs:ignore
-        ) {
+        $isRestRequest = defined( 'REST_REQUEST' ) && REST_REQUEST;
+        if ( $isRestRequest || ( (bool) ( $_GET['rest_route'] ?? false ) ) ) { // phpcs:ignore
             return true;
         }
 
@@ -332,7 +333,7 @@ class WPContext implements JsonSerializable {
     /**
      * Serializes the context state.
      *
-     * @return array<value-of<\Hybrid\Tools\WordPress\WPContext::ALL>, bool>
+     * @return array<value-of<WPContext::ALL>, bool>
      */
     public function jsonSerialize(): array {
         return $this->data;
@@ -352,10 +353,9 @@ class WPContext implements JsonSerializable {
                 $this->resetAndForce( self::LOGIN );
             },
             'rest_api_init'     => function (): void {
-                $this->resetAndForce( self::REST );
-            },
-            'rest_api_init'     => function (): void {
-                $this->isSiteEditorRequest() && $this->resetAndForce( self::SITE_EDITOR );
+                $this->isSiteEditorRequest()
+                    ? $this->resetAndForce( self::SITE_EDITOR )
+                    : $this->resetAndForce( self::REST );
             },
             'activate_header'   => function (): void {
                 $this->resetAndForce( self::WP_ACTIVATE );
@@ -364,10 +364,13 @@ class WPContext implements JsonSerializable {
                 $this->resetAndForce( self::FRONTOFFICE );
             },
             'current_screen'    => function ( WP_Screen $screen ): void {
-                $screen->in_admin() and $this->resetAndForce( self::BACKOFFICE );
-            },
-            'current_screen'    => function ( WP_Screen $screen ): void {
-                $screen->is_block_editor() and $this->resetAndForce( self::BLOCK_EDITOR );
+                if ( 'site-editor' === $screen->base ) {
+                    $this->resetAndForce( self::SITE_EDITOR );
+                } elseif ( $screen->is_block_editor() ) {
+                    $this->resetAndForce( self::BLOCK_EDITOR );
+                } elseif ( $screen->in_admin() ) {
+                    $this->resetAndForce( self::BACKOFFICE );
+                }
             },
         ];
 
