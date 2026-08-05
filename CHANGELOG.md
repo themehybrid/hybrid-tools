@@ -2,6 +2,31 @@
 
 You can see the changes made via the [commit log](https://github.com/themehybrid/hybrid-tools/commits/master) for the latest release.
 
+## [2.0.5] - 2026-08-05
+
+### Added
+
+- add `WordPress\SvgSupport` class for SVG media integration: enables SVG uploads,
+  sanitizes them on upload, and fixes dimensions, admin previews, and srcset handling
+  in the media library
+  - `SvgSupport::sanitize()` fails closed by default, returning `null` so that no SVG is
+    accepted until a subclass supplies a sanitizer implementation
+  - `SvgSupport` handles gzip-compressed `.svgz` files, decoding before sanitization and
+    re-encoding afterwards
+  - SVG uploads are permitted only on the media, post, and site editor screens, and the
+    mime type is removed again once the upload completes
+- add `docs/svg-support.md` covering sanitizer implementation, permissions, and media library behavior
+- add `docs/wp-context.md` covering available contexts, early detection and correction, and forcing
+
+### Fixed
+
+- fix `WordPress\WPContext`
+  - duplicate action hook keys that silently dropped the `rest`
+    and `backoffice` context corrections
+  - reporting the site editor as the block editor on `current_screen`
+  - running site editor detection during installation, which could
+    call `get_option()` before the database is available
+
 ## [2.0.4] - 2026-06-02
 
 ### Changed
@@ -83,37 +108,37 @@ You can see the changes made via the [commit log](https://github.com/themehybrid
 ### Added / Changed
 
 - Collections: [v9.24.0](https://github.com/illuminate/collections/tree/v9.24.0)
-  - Traits\EnumeratesValues.php
-  - Arr
-  - Collection
-  - Enumerable
-  - HigherOrderCollectionProxy
-  - ItemNotFoundException
-  - LazyCollection
-  - MultipleItemsFoundException
+	- Traits\EnumeratesValues.php
+	- Arr
+	- Collection
+	- Enumerable
+	- HigherOrderCollectionProxy
+	- ItemNotFoundException
+	- LazyCollection
+	- MultipleItemsFoundException
 - Conditionable: [v9.24.0](https://github.com/illuminate/conditionable/tree/v9.24.0)
-  - Traits\Conditionable
-  - HigherOrderWhenProxy
+	- Traits\Conditionable
+	- HigherOrderWhenProxy
 - Macroable: [v9.24.0](https://github.com/illuminate/macroable/tree/v9.24.0)
-  - Traits\Macroable
+	- Traits\Macroable
 - Support: [v9.24.0](https://github.com/illuminate/support/tree/v9.24.0)
-  - Facades\Config
-  - Facades\Date
-  - Traits\ForwardsCalls
-  - Traits\ReflectsClosures
-  - Traits\Tappable
-  - Carbon
-  - DateFactory
-  - Env
-  - Fluent
-  - HigherOrderTapProxy
-  - HtmlString
-  - InteractsWithTime
-  - Reflector
-  - Str
-  - Stringable
+	- Facades\Config
+	- Facades\Date
+	- Traits\ForwardsCalls
+	- Traits\ReflectsClosures
+	- Traits\Tappable
+	- Carbon
+	- DateFactory
+	- Env
+	- Fluent
+	- HigherOrderTapProxy
+	- HtmlString
+	- InteractsWithTime
+	- Reflector
+	- Str
+	- Stringable
 - Config: [v9.24.0](https://github.com/illuminate/config/tree/v9.24.0)
-  - Config\Repository
+	- Config\Repository
 
 ## [1.0.1] - 2023-08-03
 
