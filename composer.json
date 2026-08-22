@@ -33,6 +33,12 @@
 		"vlucas/phpdotenv": "^5.6.1",
 		"voku/portable-ascii": "^2.0.2"
 	},
+	"require-dev": {
+		"alvarodelera/pest-wp-plugin": "^2.0",
+		"pestphp/pest": "^5.0",
+		"themehybrid/hybrid-contracts": "^2.0",
+		"themehybrid/hybrid-core": "dev-dev as 7.0"
+	},
 	"replace": {
 		"spatie/once": "*"
 	},
@@ -51,7 +57,23 @@
 			"src/WordPress/functions-helpers.php"
 		]
 	},
+	"autoload-dev": {
+		"psr-4": {
+			"Hybrid\\Tools\\Tests\\": "tests/"
+		}
+	},
 	"config": {
+		"allow-plugins": {
+			"pestphp/pest-plugin": true
+		},
 		"sort-packages": true
+	},
+	"extra": {
+		"branch-alias": {
+			"dev-master": "2.0.x-dev"
+		}
+	},
+	"scripts": {
+		"test": "pest"
 	}
 }
