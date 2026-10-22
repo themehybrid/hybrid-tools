@@ -1,0 +1,42 @@
+{
+	"name": "themehybrid/hybrid-tools-qa",
+	"description": "Test suite for hybrid-tools. Its own Composer project, so Pest's PHP 8.4 requirement never reaches the package's PHP 8.2 floor.",
+	"type": "project",
+	"license": "GPL-2.0-or-later",
+	"repositories": [
+		{
+			"type": "path",
+			"url": "..",
+			"options": {
+				"symlink": true,
+				"versions": {
+					"themehybrid/hybrid-tools": "2.0.x-dev"
+				}
+			}
+		}
+	],
+	"require-dev": {
+		"alvarodelera/pest-wp-plugin": "^2.0",
+		"pestphp/pest": "^5.0",
+		"themehybrid/hybrid-contracts": "^2.0",
+		"themehybrid/hybrid-core": "dev-dev as 7.0",
+		"themehybrid/hybrid-tools": "2.0.x-dev"
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"Hybrid\\Tools\\Tests\\": "tests/"
+		}
+	},
+	"config": {
+		"allow-plugins": {
+			"pestphp/pest-plugin": true
+		},
+		"process-timeout": 0,
+		"sort-packages": true
+	},
+	"minimum-stability": "dev",
+	"prefer-stable": true,
+	"scripts": {
+		"test": "pest"
+	}
+}

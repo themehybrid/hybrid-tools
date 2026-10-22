@@ -53,5 +53,13 @@
 	},
 	"config": {
 		"sort-packages": true
+	},
+	"extra": {
+		"branch-alias": {
+			"dev-master": "2.0.x-dev"
+		}
+	},
+	"scripts": {
+		"test": "@composer --working-dir=qa test"
 	}
 }
