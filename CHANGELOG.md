@@ -2,6 +2,32 @@
 
 You can see the changes made via the [commit log](https://github.com/themehybrid/hybrid-tools/commits/master) for the latest release.
 
+## [2.0.6] - 2026-10-22
+
+### Added
+
+- add `Config\Loader`, which loads a directory of config files into the `config`
+  repository under a namespace
+  - a file's key comes from its path: `site/footer/legal.php` becomes `site.footer.legal`
+  - loading into a namespace that already holds values merges over them: string-keyed
+    arrays merge recursively, lists and scalars replace
+- add `Config\PackageConfig`, a per-package reader for namespaced config
+  - `get()` returns a stored Closure as is; `value()` calls it
+- add `WordPress\AdminNotices`, a queue of admin notices stored in an option and
+  dismissed through a nonced link
+  - each `add()` and `remove()` saves immediately, so concurrent requests cannot
+    overwrite each other's queue
+  - notices render only for users with the given capability and, optionally, only
+    on the given screens
+  - a dismiss request for a notice with no registered renderer is ignored
+- add `docs/config.md` and `docs/admin-notices.md`
+- add a Pest test suite in `qa/`, a separate Composer project because Pest 5 needs
+  PHP 8.4; run with `composer test`
+
+### Removed
+
+- remove `symfony/polyfill-php82`, which PHP 8.2, the minimum version, makes redundant
+
 ## [2.0.5] - 2026-08-05
 
 ### Added
