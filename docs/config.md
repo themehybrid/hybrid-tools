@@ -21,6 +21,22 @@ reads them back without repeating that namespace at every call site.
 nested file would also load unprefixed, and two packages shipping the same
 path would silently collide.
 
+## Upgrading to Hybrid Core 7.0.6
+
+**Breaking: config files in subfolders no longer load on their own.**
+
+- **You'll notice:** a value from a file such as `config/site/header.php`
+  (`site.header.*`) reads `null`. Root files like `config/app.php` still load.
+- **Fix, one line** in your service provider's `register()`, keeping the same
+  keys:
+
+  ```php
+  \Hybrid\Tools\Config\Loader::load( get_template_directory() . '/config' );
+  ```
+
+Moving to a namespace later is the second argument; your reads then gain that
+prefix, as shown under Loading below.
+
 ## Loading
 
 ```php
